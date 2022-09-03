@@ -9,8 +9,7 @@ node_modules/
 Thumbs.db
 
 #test data
-record.js
-test.js
+test/
 
 # compiled output
 /dist
