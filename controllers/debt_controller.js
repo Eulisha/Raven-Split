@@ -46,6 +46,20 @@ const getDebtMain = async (req, res) => {
 };
 
 const postGroup = async (req, res) => {
+    //TODO: Insert mysql & get uid, gid
+    //TODO:轉成指定json格式
+    // {
+    //     "props": [
+    //         {
+    //             "name": 3
+    //         },
+    //         {
+    //             "name": 10
+    //         }
+    //     ],
+    //     "gid": 3
+    // }
+
     const map = req.body.props;
     const gid = req.body.gid;
     try {
