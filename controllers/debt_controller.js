@@ -50,10 +50,10 @@ const postGroup = async (req, res) => {
     const gid = req.body.gid;
     try {
         await Graph.createNode(map, gid);
-        return res.status(200);
+        return res.status(200).json({ data: 'create success.' });
     } catch (err) {
         console.log(err);
-        res.status(500).json({ err });
+        return res.status(500).json({ err });
     }
 };
 
