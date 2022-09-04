@@ -5,8 +5,6 @@ const user = process.env.NEO4J_USER;
 const password = process.env.NEO4J_PASS;
 const driver = neo4j.driver(host, neo4j.auth.basic(user, password));
 
-const updateGraph = async () => {};
-
 //查詢圖中所有node
 const allNodes = async (group) => {
     const session = driver.session();
@@ -51,14 +49,28 @@ const allPaths = async (currentSource, group, sinkNode) => {
     return result;
 };
 
-//建立節點
+// 群組建立節點
 const createNode = async (map, gid) => {
     const session = driver.session();
     //TODO:處理數字轉換問題，現在neo會是3.0
-    const result = await session.writeTransaction(async (txc) => {
+    return await session.writeTransaction(async (txc) => {
         const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $props AS map CREATE (n)-[:member_of]->(m) SET n = map RETURN n', { gid: gid, props: map });
-        // console.log(result.summary.updateStatistics);
+        console.log(result.summary.updateStatistics);
         return result;
     });
 };
-module.exports = { allNodes, sourceEdge, allPaths, createNode };
+
+// 新增的帳款加入圖中
+const updateGraph = async (lender, borrowers) => {
+    const session = driver.session();
+    return await session.writeTransaction(async (txc, lender, borrowers) => {
+        const result = await txc.run(
+            'MATCH (lender:group{name:$lender}) WITH lender UNWIND $borrowers AS borrower CREATE (m:person)-[r:own]->(lender) SET m.name = borrower.borrower, r.amount = borrower.amount',
+            { lender, borrowers }
+        );
+        console.log(result.summary.updateStatistics);
+        // console.log(result);
+        return result;
+    });
+};
+module.exports = { allNodes, sourceEdge, allPaths, createNode, updateGraph };
