@@ -1,7 +1,8 @@
 const Debt = require('../models/debt_model');
+const Graph = require('../models/graph_model');
 const pageSize = 25;
 
-const getDebtMain = async function (req, res) {
+const getDebtMain = async (req, res) => {
     const group = Number(req.query.group);
     const uid = Number(req.query.uid);
     const paging = Number(req.query.paging) || 0;
@@ -44,4 +45,16 @@ const getDebtMain = async function (req, res) {
     }
 };
 
-module.exports = { getDebtMain };
+const postGroup = async (req, res) => {
+    const map = req.body.props;
+    const gid = req.body.gid;
+    try {
+        await Graph.createNode(map, gid);
+        return res.status(200);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ err });
+    }
+};
+
+module.exports = { getDebtMain, postGroup };
