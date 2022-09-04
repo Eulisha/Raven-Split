@@ -49,28 +49,30 @@ const allPaths = async (currentSource, group, sinkNode) => {
     return result;
 };
 
-// 群組建立節點
-const createNode = async (map, gid) => {
-    const session = driver.session();
-    //TODO:處理數字轉換問題，現在neo會是3.0
-    return await session.writeTransaction(async (txc) => {
-        const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $props AS map CREATE (n)-[:member_of]->(m) SET n = map RETURN n', { gid: gid, props: map });
-        console.log(result.summary.updateStatistics);
-        return result;
-    });
-};
+//建立節點
+const createGraphNodes = async (gid, members, conn) => {
+    try {
+        const session = driver.session();
+        let map = [];
+        for (let member of members) {
+            map.push({ name: neo4j.int(member) });
+        }
+        return await session.writeTransaction(async (txc) => {
+            const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n:person)-[:member_of]->(m) SET n = members RETURN n', {
+                gid: neo4j.int(gid),
+                members: map,
+            });
 
-// 新增的帳款加入圖中
-const updateGraph = async (lender, borrowers) => {
-    const session = driver.session();
-    return await session.writeTransaction(async (txc, lender, borrowers) => {
-        const result = await txc.run(
-            'MATCH (lender:group{name:$lender}) WITH lender UNWIND $borrowers AS borrower CREATE (m:person)-[r:own]->(lender) SET m.name = borrower.borrower, r.amount = borrower.amount',
-            { lender, borrowers }
-        );
-        console.log(result.summary.updateStatistics);
-        // console.log(result);
-        return result;
-    });
+            //三個事項都成功mysql才能commit
+            const mysqlCommitResult = await conn.commit();
+            return true;
+        });
+    } catch (err) {
+        console.log('ERROR AT createGraphNodes: ', err);
+        await conn.rollback();
+        return null;
+    } finally {
+        await conn.release();
+    }
 };
-module.exports = { allNodes, sourceEdge, allPaths, createNode, updateGraph };
+module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes };

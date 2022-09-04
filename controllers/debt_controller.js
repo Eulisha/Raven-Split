@@ -63,7 +63,7 @@ const postGroup = async (req, res) => {
     const map = req.body.props;
     const gid = req.body.gid;
     try {
-        await Graph.createNode(map, gid);
+        await Graph.createGraphNodes(map, gid);
         return res.status(200).json({ data: 'create success.' });
     } catch (err) {
         console.log(err);
