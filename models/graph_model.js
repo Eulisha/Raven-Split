@@ -55,13 +55,16 @@ const allPaths = async (currentSource, group, sinkNode) => {
 const createGraphNodes = async (gid, members, conn) => {
     try {
         const session = driver.session();
-        //TODO:處理數字轉換問題，現在neo會是3.0
+        let map = [];
+        for (let member of members) {
+            map.push({ name: neo4j.int(member) });
+        }
         return await session.writeTransaction(async (txc) => {
-            const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n)-[:member_of]->(m) SET n = members RETURN n', {
-                gid: gid,
-                members: members,
+            const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n:person)-[:member_of]->(m) SET n = members RETURN n', {
+                gid: neo4j.int(gid),
+                members: map,
             });
-            // console.log(result.summary.updateStatistics);
+
             //三個事項都成功mysql才能commit
             const mysqlCommitResult = await conn.commit();
             return true;
