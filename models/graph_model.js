@@ -52,13 +52,26 @@ const allPaths = async (currentSource, group, sinkNode) => {
 };
 
 //建立節點
-const createNode = async (map, gid) => {
-    const session = driver.session();
-    //TODO:處理數字轉換問題，現在neo會是3.0
-    const result = await session.writeTransaction(async (txc) => {
-        const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $props AS map CREATE (n)-[:member_of]->(m) SET n = map RETURN n', { gid: gid, props: map });
-        // console.log(result.summary.updateStatistics);
-        return result;
-    });
+const createGraphNodes = async (gid, members, conn) => {
+    try {
+        const session = driver.session();
+        //TODO:處理數字轉換問題，現在neo會是3.0
+        return await session.writeTransaction(async (txc) => {
+            const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n)-[:member_of]->(m) SET n = members RETURN n', {
+                gid: gid,
+                members: members,
+            });
+            // console.log(result.summary.updateStatistics);
+            //三個事項都成功mysql才能commit
+            const mysqlCommitResult = await conn.commit();
+            return true;
+        });
+    } catch (err) {
+        console.log('ERROR AT createGraphNodes: ', err);
+        await conn.rollback();
+        return null;
+    } finally {
+        await conn.release();
+    }
 };
-module.exports = { allNodes, sourceEdge, allPaths, createNode };
+module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes };
