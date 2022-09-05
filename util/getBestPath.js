@@ -41,8 +41,8 @@ const getBestPath = async (group) => {
             });
         } catch (err) {
             console.log('ERROR AT getBestPath Neo4j Search: ', err);
-            await conn.rollback();
-            await conn.release();
+            // await conn.rollback();
+            // await conn.release();
             return null;
         }
         console.log('order:', order);
@@ -58,9 +58,11 @@ const getBestPath = async (group) => {
             console.timeEnd('db3');
             //第二層：iterate paths in source
             for (let i = 0; i < pathsResult.records.length; i++) {
-                const sink = pathsResult.records[i]._fields[0].end.properties.name; //當前path的sink
+                const sink = pathsResult.records[i]._fields[0].end.properties.name.toNumber(); //當前path的sink
                 console.log('sink', sink);
+                console.log('sinks', pathsStructure[currentSource].sinksSummary.sinks);
                 if (!pathsStructure[currentSource].sinksSummary.sinks.includes(sink)) {
+                    //代表和這個人沒有直接的借貸關係
                     console.log('break', sink);
                     continue;
                 }
@@ -69,9 +71,9 @@ const getBestPath = async (group) => {
                 pathsResult.records[i]._fields[0].segments.forEach((edge) => {
                     console.log('edge from neo', edge);
                     //更新欠款圖graph的debt
-                    graph[edge.start.properties.name][edge.end.properties.name] = edge.relationship.properties.total.low;
+                    graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber();
                     //將碎片放進陣列中
-                    edges.push([edge.start.properties.name, edge.end.properties.name]);
+                    edges.push([edge.start.properties.name.toNumber(), edge.end.properties.name.toNumber()]);
                     console.log('放碎片：', edges);
                 });
                 //更新路徑表pathsStructure
@@ -144,9 +146,9 @@ const getBestPath = async (group) => {
         return graph;
     } catch (err) {
         console.log('ERROR AT getBestPath: ', err);
-        await conn.rollback();
-        return null;
+        // await conn.rollback();
+        // return null;
     }
 };
-
+// getBestPath();
 module.exports = { getBestPath };

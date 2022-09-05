@@ -22,8 +22,6 @@ const createGroup = async (req, res, next) => {
             if (x > members.length - 1) {
                 break;
             }
-            console.log('pair:', i, x);
-            console.log(j);
             memberCombo.push([members[i], members[x]]);
         }
     }

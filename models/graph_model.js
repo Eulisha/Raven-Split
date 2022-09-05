@@ -66,12 +66,15 @@ const updateGraphEdge = async (gid, lender, borrowers, conn) => {
 //更新最佳解
 const updateGraphSettle = async (gid) => {};
 
+// MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
 const allNodes = async (group) => {
     const session = driver.session();
-    const result = await session.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
-    await session.close();
-    return result;
+    return await session.writeTransaction(async (txc) => {
+        const result = await txc.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
+        // await session.close();
+        return result;
+    });
 };
 
 //查每個source出去的edge數量

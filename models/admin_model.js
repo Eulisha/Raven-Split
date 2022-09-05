@@ -7,13 +7,13 @@ const createGroup = async (group_name, members) => {
         await conn.beginTransaction();
         // console.log(group_name);
         //新增group
-        const groupSql = `INSERT INTO split_group (group_name, valid_status) VALUES (?, ?)`;
+        const groupSql = `INSERT INTO split_group (group_name, status) VALUES (?, ?)`;
         const groupData = [group_name, 1];
         const groupResult = await conn.execute(groupSql, groupData);
         const groupId = groupResult[0].insertId;
         //新增mebers
         for (let member of members) {
-            const memberSql = `INSERT INTO split_member (gid, uid, valid_status) VALUES (?,?,?);`;
+            const memberSql = `INSERT INTO split_member (gid, uid, status) VALUES (?,?,?);`;
             const memberData = [groupId, member, 1];
             const memberResult = await conn.execute(memberSql, memberData);
         }
