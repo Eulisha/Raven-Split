@@ -8,11 +8,11 @@ const createGroup = async (req, res, next) => {
     console.log(req.body);
 
     //取得MySql連線
-    conn = await pool.getConnection();
+    const conn = await pool.getConnection();
     await conn.beginTransaction();
 
     //MySql建立group
-    const [groupResult, conn] = await Admin.createGroup(group_name, members, conn);
+    const groupResult = await Admin.createGroup(group_name, members, conn);
     if (!groupResult) {
         await conn.rollback();
         await conn.release();
