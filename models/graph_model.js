@@ -21,17 +21,11 @@ const createGraphNodes = async (gid, members, conn) => {
                 // gid: neo4j.int(toString(gid)),
                 members: map,
             });
-
-            //三個事項都成功mysql才能commit
-            const mysqlCommitResult = await conn.commit();
             return true;
         });
     } catch (err) {
         console.log('ERROR AT createGraphNodes: ', err);
-        await conn.rollback();
         return null;
-    } finally {
-        await conn.release();
     }
 };
 

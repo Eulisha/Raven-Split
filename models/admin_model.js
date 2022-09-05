@@ -1,10 +1,5 @@
-const pool = require('../config/mysql');
-
-const createGroup = async (group_name, members) => {
-    let conn;
+const createGroup = async (group_name, members, conn) => {
     try {
-        conn = await pool.getConnection();
-        await conn.beginTransaction();
         // console.log(group_name);
         //新增group
         const groupSql = `INSERT INTO split_group (group_name, status) VALUES (?, ?)`;
@@ -17,11 +12,9 @@ const createGroup = async (group_name, members) => {
             const memberData = [groupId, member, 1];
             const memberResult = await conn.execute(memberSql, memberData);
         }
-        return [groupId, conn];
+        return groupId;
     } catch (err) {
         console.log('ERROR AT createGroup: ', err);
-        await conn.rollback();
-        await conn.release();
         return null;
     }
 };
@@ -36,10 +29,7 @@ const createDebtBalance = async (gid, memberCombo, conn) => {
         return true;
     } catch (err) {
         console.log('ERROR AT createDebtBalance: ', err);
-        await conn.rollback();
         return null;
-    } finally {
-        await conn.release();
     }
 };
 
