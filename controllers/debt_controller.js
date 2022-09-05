@@ -1,6 +1,7 @@
 const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const { getBestPath } = require('../util/getBestPath');
+const pool = require('../config/mysql');
 const pageSize = 25;
 
 const getDebtMain = async (req, res) => {
@@ -74,15 +75,23 @@ const postGroup = async (req, res) => {
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main;
     const debtDetail = req.body.debt_detail;
+
+    //取得連線
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
     //MYSQL 新增帳務
-    const postDbResult = await Debt.postDebt(debtMain, debtDetail);
+    const postDbResult = await Debt.postDebt(debtMain, debtDetail, conn);
     if (!postDbResult) {
+        await conn.rollback();
+        await conn.release();
         return res.status(500).json({ err: 'Internal Server Error' });
     }
-    const conn = postDbResult[1];
+
     //MySql撈目前的balance
     const [getBalanceResult] = await Debt.getBalance(debtMain.gid, debtMain.lender, conn);
     if (!getBalanceResult) {
+        await conn.rollback();
+        await conn.release();
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     console.log('balance: ', getBalanceResult);
@@ -103,11 +112,12 @@ const postDebt = async (req, res) => {
     //MySql存回新balance
     const updateBalanceResult = await Debt.updateBalance(newBalances, conn);
     if (!updateBalanceResult) {
+        await conn.rollback();
+        await conn.release();
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     console.log('DB到這裡都完成了：', updateBalanceResult);
 
-    //TODO:要從這裡開始測試
     //NEO4j加入新的線
     let borrowers = [];
     for (let debt of debtDetail) {
@@ -118,6 +128,13 @@ const postDebt = async (req, res) => {
     console.log(borrowers);
     const updateGraphEdgeesult = await Graph.updateGraphEdge(debtMain.gid, debtMain.lender, borrowers, conn);
     console.log('更新線的結果：', updateGraphEdgeesult);
+    if (!updateBalanceResult) {
+        await conn.rollback();
+        await conn.release();
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    await conn.commit();
+    res.status(200).json({ data: null });
     //TODO:處理沒有MATCH的狀況（不會跳error）
 
     //NEO4j取得最佳解GRAPH

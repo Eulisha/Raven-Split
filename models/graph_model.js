@@ -58,7 +58,6 @@ const updateGraphEdge = async (gid, lender, borrowers, conn) => {
         });
     } catch (err) {
         console.log('ERROR AT updateGraphEdge: ', err);
-        await conn.rollback();
         return null;
     }
 };
