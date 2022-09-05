@@ -77,7 +77,7 @@ const postDebt = async (req, res) => {
     const debtDetail = req.body.debt_detail;
 
     //取得連線
-    conn = await pool.getConnection();
+    const conn = await pool.getConnection();
     await conn.beginTransaction();
     //MYSQL 新增帳務
     const postDbResult = await Debt.postDebt(debtMain, debtDetail, conn);
@@ -126,7 +126,7 @@ const postDebt = async (req, res) => {
         }
     }
     console.log(borrowers);
-    const updateGraphEdgeesult = await Graph.updateGraphEdge(debtMain.gid, debtMain.lender, borrowers, conn);
+    const updateGraphEdgeesult = await Graph.updateGraphEdge(debtMain.gid, debtMain.lender, borrowers);
     console.log('更新線的結果：', updateGraphEdgeesult);
     if (!updateBalanceResult) {
         await conn.rollback();
@@ -134,6 +134,7 @@ const postDebt = async (req, res) => {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     await conn.commit();
+    await conn.release();
     res.status(200).json({ data: null });
     //TODO:處理沒有MATCH的狀況（不會跳error）
 

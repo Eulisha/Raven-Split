@@ -15,7 +15,7 @@ const getDebtDetail = async (debtId, uid) => {
 };
 const postDebt = async (debtMain, debtDetail, conn) => {
     try {
-        const debtMainSql = `INSERT INTO debt_main (gid, debt_date, title, total, lender, split_method, debt_status) 
+        const debtMainSql = `INSERT INTO debt_main (gid, debt_date, title, total, lender, split_method, status) 
     VALUE (?,?,?,?,?,?,?);`;
         const debtMainData = [debtMain.gid, debtMain.debt_date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
         const debtMainResult = await conn.execute(debtMainSql, debtMainData);

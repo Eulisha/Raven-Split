@@ -30,7 +30,7 @@ const createGraphNodes = async (gid, members, conn) => {
 };
 
 //更新新的線
-const updateGraphEdge = async (gid, lender, borrowers, conn) => {
+const updateGraphEdge = async (gid, lender, borrowers) => {
     try {
         const session = driver.session();
         let map = [];
