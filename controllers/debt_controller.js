@@ -1,5 +1,6 @@
 const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
+const { getBestPath } = require('../util/getBestPath');
 const pageSize = 25;
 
 const getDebtMain = async (req, res) => {
@@ -73,46 +74,57 @@ const postGroup = async (req, res) => {
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main;
     const debtDetail = req.body.debt_detail;
-
-    //BEGIN TRANS
-    const conn = await pool.getConnection();
-    try {
-        //INSET MYSQL
-        const postDbResult = await Debt.postDebt(debtMain, debtDetail);
-        //SELECT DEBT
-        //TRANS TO LEAST COMBO
-        let arr = ['a', 'b', 'c', 'd', 'e'];
-        let arr1 = [];
-        for (let i = 0; i < arr.length; i++) {
-            console.log(i);
-            for (let j = 0; j < arr.length - 1; j++) {
-                let x = i + j + 1;
-                if (x > arr.length - 1) {
-                    break;
-                }
-                console.log('pair:', i, x);
-                console.log(j);
-                arr1.push([arr[i], arr[x]]);
-            }
-        }
-        console.log(arr1);
-
-        //INSRT NEO4j
-        let lender = req.body.debt.debt_main.lender;
-        let borrowers = req.body.debt.debt_detail;
-        const result = updateGraph(lender, borrowers);
-        //TODO:處理沒有MATCH的狀況（不會跳error）
-        if (result.length === 0) {
-        }
-        //UPDATE GRAPH
-
-        //COMMIT
-        await conn.query('COMMIT');
-    } catch (error) {
-        await conn.query('ROLLBACK');
-        return { error };
-    } finally {
-        conn.release();
+    //MYSQL 新增帳務
+    const postDbResult = await Debt.postDebt(debtMain, debtDetail);
+    if (!postDbResult) {
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
+    const conn = postDbResult[1];
+    //MySql撈目前的balance
+    const [getBalanceResult] = await Debt.getBalance(debtMain.gid, debtMain.lender, conn);
+    if (!getBalanceResult) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    console.log('balance: ', getBalanceResult);
+    //計算新的balance
+    let newBalances = [];
+    for (let pair of getBalanceResult) {
+        let newBalance;
+        if (pair.lender === debtMain.lender) {
+            newBalance = debtMain.total + pair.amount;
+            newBalances.push({ gid: pair.gid, lender: pair.lender, borrower: pair.borrower, amount: newBalance });
+        } else if (pair.borrower === debtMain.lender) {
+            newBalance = debtMain.total - pair.amount;
+            newBalances.push({ gid: pair.gid, lender: pair.lender, borrower: pair.borrower, amount: newBalance });
+        }
+    }
+    console.log(newBalances);
+
+    //MySql存回新balance
+    const updateBalanceResult = await Debt.updateBalance(newBalances, conn);
+    if (!updateBalanceResult) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    console.log('DB到這裡都完成了：', updateBalanceResult);
+
+    //TODO:要從這裡開始測試
+    //NEO4j加入新的線
+    let borrowers = [];
+    for (let debt of debtDetail) {
+        if (debt.borrower !== debtMain.lender) {
+            borrowers.push(debt);
+        }
+    }
+    console.log(borrowers);
+    const updateGraphEdgeesult = await Graph.updateGraphEdge(debtMain.gid, debtMain.lender, borrowers, conn);
+    console.log('更新線的結果：', updateGraphEdgeesult);
+    //TODO:處理沒有MATCH的狀況（不會跳error）
+
+    //NEO4j取得最佳解GRAPH
+    const getBestPathResult = getBestPath(debtMain.gid);
+    if (!getBestPathResult) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    //NEO4j更新最佳解
 };
 module.exports = { getDebtMain, postGroup, postDebt };

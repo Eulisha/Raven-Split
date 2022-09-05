@@ -135,4 +135,4 @@ const settleUp = async (req, res, group) => {
     res.status(200).json(graph);
 };
 
-module.exports = settleUp;
+module.exports = { settleUp };

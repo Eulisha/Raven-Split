@@ -16,21 +16,55 @@ const getDebtDetail = async (debtId, uid) => {
     }
 };
 const postDebt = async (debtMain, debtDetail) => {
-    const debtMainSql = `INSERT INTO debt_main (gid, debt_date, title, total, borrower, split_method, debt_status) 
-    VALUE ?;`;
-    const debtMainResult = await pool.execute(debtMainSql, [
-        debtMain.gid,
-        debtMain.debt_date,
-        debtMain.title,
-        debtMain.total,
-        debtMain.borrower,
-        debtMain.split_method,
-        debtMain.debt_status,
-    ]);
-    const debtId = debtDetail[0].insertId;
-    for (let debt of debtDetail) {
-        const debtDetailSql = `INSERT INTO debt_detail (debt_id, lender, amount) VALUE ?`;
-        const debtDetailResult = await pool.execute(debtDetailSql, [debtId, debtDetail.lender, debtDetail.amount]);
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        await conn.beginTransaction();
+        const debtMainSql = `INSERT INTO debt_main (gid, debt_date, title, total, lender, split_method, debt_status) 
+    VALUE (?,?,?,?,?,?,?);`;
+        const debtMainData = [debtMain.gid, debtMain.debt_date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
+        const debtMainResult = await conn.execute(debtMainSql, debtMainData);
+        const debtId = debtMainResult[0].insertId;
+        for (let debt of debtDetail) {
+            const debtDetailSql = `INSERT INTO debt_detail (debt_id, borrower, amount) VALUE (?,?,?)`;
+            const debtDetailData = [debtId, debt.borrower, debt.amount];
+            await conn.execute(debtDetailSql, debtDetailData);
+        }
+        return [true, conn];
+    } catch (err) {
+        console.log('ERROR AT postDebt: ', err);
+        await conn.rollback();
+        await conn.release();
+        return null;
     }
 };
-module.exports = { getDebtMain, getDebtDetail, postDebt };
+
+const getBalance = async (gid, lender, conn) => {
+    try {
+        const sql = `SELECT * from debt_balance WHERE  gid = ? AND lender = ? OR ? = borrower`;
+        const data = [gid, lender, lender];
+        const result = await conn.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.log('ERROR AT createGroup: ', err);
+        await conn.rollback();
+        await conn.release();
+        return null;
+    }
+};
+const updateBalance = async (newBalances, conn) => {
+    try {
+        for (let newbalance of newBalances) {
+            const sql = `INSERT INTO debt_balance (gid, lender, borrower, amount) VALUES (?, ?, ? ,?)`;
+            const data = [newbalance.gid, newbalance.lender, newbalance.borrower, newbalance.amount];
+            await conn.execute(sql, data);
+        }
+        return true;
+    } catch (err) {
+        console.log('ERROR AT createGroup: ', err);
+        await conn.rollback();
+        await conn.release();
+        return null;
+    }
+};
+module.exports = { getDebtMain, getDebtDetail, postDebt, getBalance, updateBalance };
