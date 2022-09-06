@@ -61,66 +61,103 @@ const updateGraphEdge = async (gid, lender, borrowers) => {
         return null;
     }
 };
-
+//TODO:要存 減了哪些、加了哪些
+// let debtsForUpdate = [ {
+//       "borrowerId" : edge[0],
+//       "lenderId" : edge[1],
+//     "admjust": bottleneckValue
+//     }]
+//
 //更新最佳解
-const updateGraphSettle = async (graph) => {
-    const session = driver.session();
-    return await session.writeTransaction(async (txc) => {
-        const result = await txc.run('', {});
-        // await session.close();
-        return result;
-    });
+const updateGraphBestPath = async (debtsForUpdate) => {
+    try {
+        const session = driver.session();
+        return await session.writeTransaction(async (txc) => {
+            const result = await txc.run(
+                'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrowerId AND m.name = debt.lenderId SET r.amount = r.amount+debt.adjust',
+                { debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
+            );
+            console.log(result.summary.updateStatistics);
+            // await session.close();
+            return true;
+        });
+    } catch (err) {
+        console.log('ERROR AT updateGraphBestPath: ', err);
+        return false;
+    }
 };
 
 // MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
-const allNodes = async (group) => {
-    const session = driver.session();
-    return await session.writeTransaction(async (txc) => {
-        const result = await txc.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
-        // await session.close();
-        return result;
-    });
+const allNodes = async (session, group) => {
+    try {
+        // const session = driver.session();
+        return await session.writeTransaction(async (txc) => {
+            const result = await txc.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
+            // await session.close();
+            return result;
+        });
+    } catch (err) {
+        console.log('ERROR AT allNodes: ', err);
+        return false;
+    }
 };
 
 //查每個source出去的edge數量
-const sourceEdge = async (source, group) => {
-    // console.log(source, group);
-    const session = driver.session();
-    // const result = await session.run(`MATCH (:group{name:$group})<-[:member_of]-(n:person{name:$name})-[:own]->(m:person) RETURN m.name AS name`, {
-    const result = await session.run(`MATCH (n:person{name:$name})-[r]->(m:person) RETURN m,r`, {
-        group: neo4j.int(group),
-        name: neo4j.int(source),
-    });
-    // console.log(result.records[0]);
-    await session.close();
-    return result;
+const sourceEdge = async (session, source, group) => {
+    try {
+        // console.log(source, group);
+        // const session = driver.session();
+        return await session.writeTransaction(async (txc) => {
+            // const result = await session.run(`MATCH (n:person{name:$name})-[r]->(m:person) RETURN m,r`, {
+            const result = await txc.run(
+                'MATCH (:group{name:$group})<-[:member_of]-(n:person{name:$name})-[:own]->(m:person)-[:member_of]->(:group{name:$group}) RETURN m.name AS name',
+                {
+                    group: neo4j.int(group),
+                    name: neo4j.int(source),
+                }
+            );
+            return result;
+        });
+        // console.log(result.records[0]);
+        // await session.close();
+    } catch (err) {
+        console.log('ERROR AT sourceEdge: ', err);
+        return false;
+    }
 };
 
 //查所有路徑
-const allPaths = async (currentSource, group, sinkNode) => {
-    const session = driver.session();
-    let result;
-    if (!sinkNode) {
-        result = await session.run(
-            `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person) WHERE (n)-[:member_of]-> (:group{name:$group}) RETURN path`, //查詢資料庫取出該source的所有路徑
-            {
-                name: neo4j.int(currentSource),
-                group: neo4j.int(group),
+const allPaths = async (session, currentSource, group, sinkNode) => {
+    try {
+        // const session = driver.session();
+        return await session.writeTransaction(async (txc) => {
+            let result;
+            if (!sinkNode) {
+                result = await txc.run(
+                    `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person) WHERE (n)-[:member_of]-> (:group{name:$group}) RETURN path`, //查詢資料庫取出該source的所有路徑
+                    {
+                        name: neo4j.int(currentSource),
+                        group: neo4j.int(group),
+                    }
+                );
+            } else {
+                result = await txc.run(
+                    `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person{name: $name}) WHERE (n)-[:member_of]-> (:group{name:$group}) RETURN path`, //查詢資料庫取出該source的所有路徑
+                    {
+                        name: neo4j.int(currentSource),
+                        group: neo4j.int(group),
+                        name: neo4j.int(sinkNode),
+                    }
+                );
             }
-        );
-    } else {
-        result = await session.run(
-            `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person{name: $name}) WHERE (n)-[:member_of]-> (:group{name:$group}) RETURN path`, //查詢資料庫取出該source的所有路徑
-            {
-                name: neo4j.int(currentSource),
-                group: neo4j.int(group),
-                name: neo4j.int(sinkNode),
-            }
-        );
+            // await session.close();
+            return result;
+        });
+    } catch (err) {
+        console.log('ERROR AT allPaths: ', err);
+        return false;
     }
-    await session.close();
-    return result;
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphSettle };
+module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphBestPath };
