@@ -22,34 +22,27 @@ const createGroup = async (req, res, next) => {
 
     //MySql建立member balance
     //整理members的排列組合
-    let memberCombo = [];
-    for (let i = 0; i < members.length; i++) {
-        for (let j = 0; j < members.length - 1; j++) {
-            let x = i + j + 1;
-            if (x > members.length - 1) {
-                break;
-            }
-            memberCombo.push([members[i], members[x]]);
-        }
-    }
-    console.log(memberCombo);
-    const balanceResult = await Admin.createDebtBalance(groupId, memberCombo, conn);
-    if (!balanceResult) {
-        await conn.rollback();
-        await conn.release();
-        return res.status(500).json({ err: 'Internal Server Error' });
-    }
+    // let memberCombo = [];
+    // for (let i = 0; i < members.length; i++) {
+    //     for (let j = 0; j < members.length - 1; j++) {
+    //         let x = i + j + 1;
+    //         if (x > members.length - 1) {
+    //             break;
+    //         }
+    //         memberCombo.push([members[i], members[x]]);
+    //     }
+    // }
+    // console.log(memberCombo);
+    // const balanceResult = await Admin.createDebtBalance(groupId, memberCombo, conn);
+    // if (!balanceResult) {
+    //     return res.status(500).json({ err: 'Internal Server Error' });
+    // }
 
     //Neo4j建立節點
     const graphResult = await Graph.createGraphNodes(groupId, members, conn);
-    if (!balanceResult) {
-        await conn.rollback();
-        await conn.release();
+    if (!graphResult) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
-    //三個事項都成功mysql才能commit
-    await conn.commit();
-    await conn.release();
-    res.status(200).json({ data: null });
+    res.status(200).json({ data: groupId });
 };
 module.exports = { createGroup };

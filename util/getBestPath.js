@@ -7,7 +7,7 @@ const getBestPath = async (group) => {
         const allNodeList = [];
         const pathsStructure = {};
         const order = [];
-        console.log('search group:', group);
+        // console.log('search group:', group);
 
         try {
             //查詢圖中所有node
@@ -19,7 +19,7 @@ const getBestPath = async (group) => {
                 graph[name] = {};
                 allNodeList.push(name);
             });
-            console.log('allNodeList: ', allNodeList);
+            // console.log('allNodeList: ', allNodeList);
 
             //查每個source出去的edge數量
             for (let source of allNodeList) {
@@ -29,10 +29,7 @@ const getBestPath = async (group) => {
                 pathsStructure[source] = { sinksSummary: { sinks: [], qty: 0 }, sinks: {} };
                 pathsStructure[source].sinksSummary.qty = sourceEdgeResult.records.length; //紀錄qty
                 sourceEdgeResult.records.forEach((element, index) => {
-                    pathsStructure[source].sinksSummary.sinks.push(
-                        element.get('m').properties.name.toNumber()
-                        // element.get('m').name.toNumber() //紀錄所有一步可到的節點
-                    );
+                    pathsStructure[source].sinksSummary.sinks.push(element.get('m').properties.name.toNumber());
                 });
                 order.push({ source: source, qty: pathsStructure[source].sinksSummary.qty }); //同步放進order的列表中
             }
@@ -40,17 +37,15 @@ const getBestPath = async (group) => {
                 return b.qty - a.qty; //排序列表供後面決定順序用
             });
         } catch (err) {
-            console.log('ERROR AT getBestPath Neo4j Search: ', err);
-            // await conn.rollback();
-            // await conn.release();
+            // console.log('ERROR AT getBestPath Neo4j Search: ', err);
             return null;
         }
-        console.log('order:', order);
+        // console.log('order:', order);
 
         ////開始將資料庫資料存進pathsStructure & graph
         //第一層：iterate sources
         for (let source of order) {
-            console.log('source: ', source.source);
+            // console.log('source: ', source.source);
             let currentSource = source.source; //當前的source
             console.time('db3');
             const pathsResult = await allPaths(currentSource, group);
@@ -59,32 +54,30 @@ const getBestPath = async (group) => {
             //第二層：iterate paths in source
             for (let i = 0; i < pathsResult.records.length; i++) {
                 const sink = pathsResult.records[i]._fields[0].end.properties.name.toNumber(); //當前path的sink
-                console.log('sink', sink);
-                console.log('sinks', pathsStructure[currentSource].sinksSummary.sinks);
+                // console.log('sink', sink);
                 if (!pathsStructure[currentSource].sinksSummary.sinks.includes(sink)) {
                     //代表和這個人沒有直接的借貸關係
-                    console.log('break', sink);
                     continue;
                 }
                 //第三層：iterate edges in path
                 let edges = []; //組成path的碎片陣列
                 pathsResult.records[i]._fields[0].segments.forEach((edge) => {
-                    console.log('edge from neo', edge);
+                    // console.log('edge from neo', edge);
                     //更新欠款圖graph的debt
                     graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber();
                     //將碎片放進陣列中
                     edges.push([edge.start.properties.name.toNumber(), edge.end.properties.name.toNumber()]);
-                    console.log('放碎片：', edges);
+                    // console.log('放碎片：', edges);
                 });
                 //更新路徑表pathsStructure
                 if (!pathsStructure[currentSource].sinks[sink]) {
                     pathsStructure[currentSource].sinks[sink] = [];
                 }
                 pathsStructure[currentSource].sinks[sink].push(edges);
-                console.log('完整碎片組', edges);
+                // console.log('完整碎片組', edges);
             }
         }
-        console.log('最終存好的graph: ', graph);
+        // console.log('最終存好的graph: ', graph);
 
         //// 開始進行分帳優化
         console.time('split');
@@ -124,9 +117,9 @@ const getBestPath = async (group) => {
                             graph[edge[0]][edge[1]] -= bottleneckValue;
                         });
 
-                        // //找出瓶頸edge的索引號碼
+                        //找出瓶頸edge的索引號碼
                         bottleneckIndex = debts.indexOf(bottleneckValue);
-                        // //將流量加到total
+                        //將流量加到total
                         totalFlow += bottleneckValue;
                         // console.log('累積ttlflow:', totalFlow);
                         // console.log('扣除後：', graph);
@@ -146,8 +139,7 @@ const getBestPath = async (group) => {
         return graph;
     } catch (err) {
         console.log('ERROR AT getBestPath: ', err);
-        // await conn.rollback();
-        // return null;
+        return null;
     }
 };
 // getBestPath();
