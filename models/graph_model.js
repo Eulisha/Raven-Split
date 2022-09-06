@@ -53,7 +53,7 @@ const updateGraphEdge = async (gid, lender, borrowers) => {
                     borrowers: map,
                 }
             );
-            console.log('結果：', result.summary.updateStatistics);
+            // console.log('結果：', result.summary.updateStatistics);
             return true;
         });
     } catch (err) {
@@ -63,7 +63,14 @@ const updateGraphEdge = async (gid, lender, borrowers) => {
 };
 
 //更新最佳解
-const updateGraphSettle = async (gid) => {};
+const updateGraphSettle = async (graph) => {
+    const session = driver.session();
+    return await session.writeTransaction(async (txc) => {
+        const result = await txc.run('', {});
+        // await session.close();
+        return result;
+    });
+};
 
 // MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
@@ -78,14 +85,14 @@ const allNodes = async (group) => {
 
 //查每個source出去的edge數量
 const sourceEdge = async (source, group) => {
-    console.log(source, group);
+    // console.log(source, group);
     const session = driver.session();
     // const result = await session.run(`MATCH (:group{name:$group})<-[:member_of]-(n:person{name:$name})-[:own]->(m:person) RETURN m.name AS name`, {
     const result = await session.run(`MATCH (n:person{name:$name})-[r]->(m:person) RETURN m,r`, {
         group: neo4j.int(group),
         name: neo4j.int(source),
     });
-    console.log(result.records[0]);
+    // console.log(result.records[0]);
     await session.close();
     return result;
 };
@@ -115,4 +122,5 @@ const allPaths = async (currentSource, group, sinkNode) => {
     await session.close();
     return result;
 };
+
 module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphSettle };
