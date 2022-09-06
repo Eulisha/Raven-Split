@@ -6,7 +6,7 @@ const password = process.env.NEO4J_PASS;
 const driver = neo4j.driver(host, neo4j.auth.basic(user, password));
 
 //建立節點
-const createGraphNodes = async (gid, members, conn) => {
+const createGraphNodes = async (gid, members) => {
     try {
         const session = driver.session();
         let map = [];
@@ -28,6 +28,7 @@ const createGraphNodes = async (gid, members, conn) => {
         return null;
     }
 };
+//TODO:重建最佳解
 
 //更新新的線
 const updateGraphEdge = async (gid, lender, borrowers) => {
@@ -55,13 +56,6 @@ const updateGraphEdge = async (gid, lender, borrowers) => {
         return null;
     }
 };
-//TODO:要存 減了哪些、加了哪些
-// let debtsForUpdate = [ {
-//       "borrowerId" : edge[0],
-//       "lenderId" : edge[1],
-//     "admjust": bottleneckValue
-//     }]
-//
 //更新最佳解
 const updateGraphBestPath = async (debtsForUpdate) => {
     try {
@@ -81,7 +75,10 @@ const updateGraphBestPath = async (debtsForUpdate) => {
     }
 };
 
-// MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
+//TODO:刪除最佳解
+const deleteBestPath = async();
+
+// TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
 const allNodes = async (session, group) => {
     try {

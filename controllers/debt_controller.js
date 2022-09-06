@@ -159,4 +159,23 @@ const getDebtDetail = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
-module.exports = { getDebtMain, getDebtDetail, postDebt };
+// TODO: <目前狀態>有數個待確認的事項，決定了才能繼續寫
+// TODO:一個動作會觸發三個db操作時，有可能會打三隻??
+const postSettle = async (req, res) => {
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    try {
+        await Debt.deleteDebtMain(conn, req.body.debtId);
+        await Debt.deleteDebtDetail(conn, req.body.debtId);
+        // await Debt.deleteDebtBalance(conn, req.body.debtId);
+        await Graph.deleteBestPath();
+        await conn.commit();
+    } catch (err) {
+        console.log('error: ', err);
+        await conn.rollback();
+        return res.status(500).json({ err });
+    } finally {
+        await conn.release();
+    }
+};
+module.exports = { getDebtMain, getDebtDetail, postDebt, postSettle };
