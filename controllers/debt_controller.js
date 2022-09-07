@@ -51,14 +51,21 @@ const getDebtMain = async (req, res) => {
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
+    const data = {};
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
 
     try {
         //1) MYSQL 新增raw data
-        const createDebtResult = await Debt.createDebt(debtMain, debtDetail, conn);
-        if (!createDebtResult) {
+        const debtMainId = await Debt.createDebtMain(conn, debtMain);
+        data.debtId = debtMainId;
+        if (!debtMainId) {
+            throw new Error('Internal Server Error');
+        }
+        //TODO:把detail拆開拆到一半
+        const debtDetailResult = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
+        if (!debtDetailResult) {
             throw new Error('Internal Server Error');
         }
 
@@ -135,13 +142,13 @@ const postDebt = async (req, res) => {
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
         }
-
+        data.graph = graph;
         //NEO4j更新best path graph
         const updateGraph = Graph.updateGraphBestPath(debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
-        res.status(200).json({ data: graph });
+        res.status(200).json(data);
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();

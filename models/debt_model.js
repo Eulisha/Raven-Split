@@ -10,26 +10,35 @@ const getDebtMain = async (group, pageSize, paging) => {
 
 const getDebtDetail = async (debtId, uid) => {
     if (uid) {
-        const debtDetailSql = `SELECT borrower, amount FROM debt_detail WHERE debt_id = ? AND borrower = ?`;
+        const debtDetailSql = 'SELECT borrower, amount FROM debt_detail WHERE debt_id = ? AND borrower = ?';
         const debtDetailResult = await pool.execute(debtDetailSql, [debtId, uid]);
         return debtDetailResult;
     }
 };
 
-const createDebt = async (debtMain, debtDetail, conn) => {
+const createDebtMain = async (conn, debtMain) => {
     try {
-        const debtMainSql = 'INSERT INTO debt_main SET gid = ?, debt_date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
-        const debtMainData = [debtMain.gid, debtMain.debt_date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
-        const [debtMainResult] = await conn.execute(debtMainSql, debtMainData);
-        let debtMainId = debtMainResult.insertId;
-        for (let debt of debtDetail) {
-            const debtDetailSql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
-            const debtDetailData = [debtMainId, debt.borrower, debt.amount];
-            await conn.execute(debtDetailSql, debtDetailData);
-        }
-        return true;
+        const sql = 'INSERT INTO debt_main SET gid = ?, debt_date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
+        const data = [debtMain.gid, debtMain.debt_date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
+        const [result] = await conn.execute(sql, data);
+        let debtMainId = result.insertId;
+        return debtMainId;
     } catch (err) {
-        console.log('ERROR AT createDebt: ', err);
+        console.log('ERROR AT createDebtMain: ', err);
+        return false;
+    }
+};
+
+const createDebtDetail = async (conn, debtMainId, debtDetail) => {
+    try {
+        for (let debt of debtDetail) {
+            const sql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
+            const data = [debtMainId, debt.borrower, debt.amount];
+            await conn.execute(sql, data);
+            return true;
+        }
+    } catch (err) {
+        console.log('ERROR AT createDebtDetail: ', err);
         return false;
     }
 };
@@ -100,4 +109,4 @@ const deleteDebtBalance = async (conn, gid) => {
     }
 };
 
-module.exports = { getDebtMain, getDebtDetail, createDebt, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };
+module.exports = { getDebtMain, getDebtDetail, createDebtMain, createDebtDetail, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };
