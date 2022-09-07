@@ -45,4 +45,12 @@ const createGroup = async (req, res, next) => {
     }
     res.status(200).json({ data: groupId });
 };
-module.exports = { createGroup };
+const getUserGroups = async (req, res) => {
+    let uid = req.params.id;
+    const groups = await Admin.getUserGroups(uid);
+    if (!groups) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    res.status(200).json({ data: groups });
+};
+module.exports = { createGroup, getUserGroups };

@@ -42,6 +42,20 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
         return false;
     }
 };
+const createDebtBalance = async (gid, memberCombo, conn) => {
+    try {
+        //新增balance, 初始借貸為0
+        for (let pair of memberCombo) {
+            const sql = `INSERT INTO debt_balance (gid, lender, borrower, amount) VALUES (?,?,?,?)`;
+            const data = [gid, pair[0], pair[1], 0];
+            await conn.execute(sql, data);
+        }
+        return true;
+    } catch (err) {
+        console.log('ERROR AT createDebtBalance: ', err);
+        return null;
+    }
+};
 
 const getBalance = async (gid, borrower, lender, conn) => {
     try {
@@ -109,4 +123,4 @@ const deleteDebtBalance = async (conn, gid) => {
     }
 };
 
-module.exports = { getDebtMain, getDebtDetail, createDebtMain, createDebtDetail, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };
+module.exports = { getDebtMain, getDebtDetail, createDebtMain, createDebtDetail, createDebtBalance, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };

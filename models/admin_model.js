@@ -1,14 +1,16 @@
+const pool = require('../config/mysql');
+
 const createGroup = async (group_name, members, conn) => {
     try {
         // console.log(group_name);
         //新增group
-        const groupSql = `INSERT INTO split_group (group_name, status) VALUES (?, ?)`;
+        const groupSql = `INSERT INTO groups (group_name, status) VALUES (?, ?)`;
         const groupData = [group_name, 1];
         const groupResult = await conn.execute(groupSql, groupData);
         const groupId = groupResult[0].insertId;
         //新增mebers
         for (let member of members) {
-            const memberSql = `INSERT INTO split_member (gid, uid, status) VALUES (?,?,?);`;
+            const memberSql = `INSERT INTO members (gid, uid, status) VALUES (?,?,?);`;
             const memberData = [groupId, member, 1];
             const memberResult = await conn.execute(memberSql, memberData);
         }
@@ -18,19 +20,18 @@ const createGroup = async (group_name, members, conn) => {
         return null;
     }
 };
-const createDebtBalance = async (gid, memberCombo, conn) => {
+const getUserGroups = async (uid) => {
     try {
-        //新增balance, 初始借貸為0
-        for (let pair of memberCombo) {
-            const sql = `INSERT INTO debt_balance (gid, lender, borrower, amount) VALUES (?,?,?,?)`;
-            const data = [gid, pair[0], pair[1], 0];
-            await conn.execute(sql, data);
-        }
-        return true;
+        console.log(uid);
+        const sql = 'SELECT gid, name FROM members LEFT JOIN `groups` ON `groups`.id = members.gid WHERE uid = ? AND `groups`.status = 1;';
+        const data = [uid];
+        const [result] = await pool.execute(sql, data);
+        console.log(result);
+        return result;
     } catch (err) {
-        console.log('ERROR AT createDebtBalance: ', err);
+        console.log('ERROR AT getGroups: ', err);
         return null;
     }
 };
 
-module.exports = { createGroup, createDebtBalance };
+module.exports = { createGroup, getUserGroups };
