@@ -4,19 +4,33 @@ const createGroup = async (group_name, members, conn) => {
     try {
         // console.log(group_name);
         //新增group
-        const groupSql = `INSERT INTO groups (group_name, status) VALUES (?, ?)`;
+        const groupSql = 'INSERT INTO `groups` (name, status) VALUES (?, ?)';
         const groupData = [group_name, 1];
         const groupResult = await conn.execute(groupSql, groupData);
         const groupId = groupResult[0].insertId;
         //新增mebers
         for (let member of members) {
-            const memberSql = `INSERT INTO members (gid, uid, status) VALUES (?,?,?);`;
+            const memberSql = 'INSERT INTO members (gid, uid, status) VALUES (?,?,?);';
             const memberData = [groupId, member, 1];
             const memberResult = await conn.execute(memberSql, memberData);
         }
         return groupId;
     } catch (err) {
         console.log('ERROR AT createGroup: ', err);
+        return null;
+    }
+};
+const createMember = async (gid, uid) => {
+    try {
+        const sql = 'INSERT INTO `members` SET uid = ?, gid = ?, status = 1';
+        const data = [uid, gid];
+        console.log(data);
+        const [result] = await pool.execute(sql, data);
+        console.log(result);
+        const memberId = result.insertId;
+        return memberId;
+    } catch (err) {
+        console.log('ERROR AT createMember: ', err);
         return null;
     }
 };
@@ -34,4 +48,4 @@ const getUserGroups = async (uid) => {
     }
 };
 
-module.exports = { createGroup, getUserGroups };
+module.exports = { createGroup, createMember, getUserGroups };
