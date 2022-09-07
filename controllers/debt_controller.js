@@ -16,10 +16,10 @@ const getDebtMain = async (req, res) => {
         console.log('debtMain:', debtMainResult);
         //查借貸明細
         for (let debtMain of debtMainResult) {
-            let debtId = debtMain.id;
+            let debtMainId = debtMain.id;
             let ownAmount;
             let isOwned = false;
-            const [debtDetailResult] = await Debt.getDebtDetail(debtId, uid);
+            const [debtDetailResult] = await Debt.getDebtDetail(debtMainId, uid);
             console.log('debtDetail:', debtDetailResult);
 
             //自己沒有參與這筆帳
@@ -32,6 +32,7 @@ const getDebtMain = async (req, res) => {
                 ownAmount = debtMain.total - debtDetailResult.amount;
             }
             const debtMainRecord = {
+                id: debtMain.id,
                 date: debtMain.debt_date,
                 title: debtMain.title,
                 total: debtMain.total,
