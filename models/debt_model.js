@@ -42,7 +42,16 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
         return false;
     }
 };
-
+const getAllBalances = async (gid) => {
+    try {
+        const sql = 'SELECT * from debt_balance WHERE gid = ?';
+        const data = [gid];
+        const [result] = await pool.execute(sql, data);
+    } catch (err) {
+        console.log('ERROR AT getAllBalance: ', err);
+        return false;
+    }
+};
 const getBalance = async (conn, gid, borrower, lender) => {
     try {
         const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
@@ -137,6 +146,7 @@ module.exports = {
     getDebtDetail,
     createDebtMain,
     createDebtDetail,
+    getAllBalances,
     getBalance,
     updateBalance,
     createBalance,

@@ -166,6 +166,16 @@ const getDebtDetail = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
+const getMeberBalances = async (req, res) => {
+    try {
+        const gid = req.params;
+        const result = Debt.getAllBalances(gid);
+        return res.status(200).json({ data: result });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ err });
+    }
+};
 
 const deleteGroupDebts = async (req, res) => {
     const conn = await pool.getConnection();
@@ -216,4 +226,4 @@ const createBatchBalance = async (req, res) => {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
-module.exports = { getDebtMain, getDebtDetail, postDebt, deleteGroupDebts };
+module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, postDebt, deleteGroupDebts };
