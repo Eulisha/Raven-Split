@@ -1,6 +1,6 @@
 const { allNodes, sourceEdge, allPaths } = require('../models/graph_model.js');
 
-const getBestPath = async (group, session) => {
+const getBestPath = async (session, group) => {
     try {
         console.time('all');
         const graph = {};

@@ -1,10 +1,10 @@
-const driver = require('../config/neo4j');
+const { neo4j, driver } = require('../config/neo4j');
 
 //TODO: 要弄懂session的定義才能繼續
 require('dotenv').config();
 
 //建立節點
-const createGraphNodes = async (gid, members, conn) => {
+const createNodes = async (gid, members, conn) => {
     const session = driver.session();
     try {
         let map = [];
@@ -28,7 +28,7 @@ const createGraphNodes = async (gid, members, conn) => {
 };
 
 //更新新的線
-const updateGraphEdge = async (session, gid, lender, borrowers) => {
+const updateEdge = async (session, gid, lender, borrowers) => {
     try {
         let map = [];
         for (let borrower of borrowers) {
@@ -53,7 +53,7 @@ const updateGraphEdge = async (session, gid, lender, borrowers) => {
     }
 };
 //更新最佳解
-const updateGraphBestPath = async (debtsForUpdate) => {
+const updateBestPath = async (debtsForUpdate) => {
     try {
         const session = driver.session();
         return await session.writeTransaction(async (txc) => {
@@ -86,7 +86,7 @@ const createBestPath = async () => {
 //查詢圖中所有node
 const allNodes = async (session, group) => {
     try {
-        // const session = driver.session();
+        console.log(session);
         return await session.writeTransaction(async (txc) => {
             const result = await txc.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
             // await session.close();
@@ -155,4 +155,4 @@ const allPaths = async (session, currentSource, group, sinkNode) => {
     }
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphBestPath, deleteBestPath };
+module.exports = { allNodes, sourceEdge, allPaths, createNodes, updateEdge, updateBestPath, deleteBestPath };

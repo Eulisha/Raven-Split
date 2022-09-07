@@ -10,7 +10,7 @@ const getDebtMain = async (group, pageSize, paging) => {
 
 const getDebtDetail = async (debtId, uid) => {
     if (uid) {
-        const debtDetailSql = 'SELECT borrower, amount FROM debt_detail WHERE debt_id = ? AND borrower = ?';
+        const debtDetailSql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
         const debtDetailResult = await pool.execute(debtDetailSql, [debtId, uid]);
         return debtDetailResult;
     }
@@ -32,7 +32,7 @@ const createDebtMain = async (conn, debtMain) => {
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     try {
         for (let debt of debtDetail) {
-            const sql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
+            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?';
             const data = [debtMainId, debt.borrower, debt.amount];
             await conn.execute(sql, data);
             return true;
@@ -42,24 +42,10 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
         return false;
     }
 };
-const createDebtBalance = async (gid, memberCombo, conn) => {
-    try {
-        //新增balance, 初始借貸為0
-        for (let pair of memberCombo) {
-            const sql = `INSERT INTO debt_balance (gid, lender, borrower, amount) VALUES (?,?,?,?)`;
-            const data = [gid, pair[0], pair[1], 0];
-            await conn.execute(sql, data);
-        }
-        return true;
-    } catch (err) {
-        console.log('ERROR AT createDebtBalance: ', err);
-        return null;
-    }
-};
 
-const getBalance = async (gid, borrower, lender, conn) => {
+const getBalance = async (conn, gid, borrower, lender) => {
     try {
-        const sql = 'SELECT id, amount from debt_balance WHERE  gid = ? AND lender = ? AND borrower = ?';
+        const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
         const data = [gid, lender, borrower];
         const [result] = await conn.execute(sql, data);
         return result;
@@ -68,7 +54,7 @@ const getBalance = async (gid, borrower, lender, conn) => {
         return false;
     }
 };
-const createBalance = async (gid, borrower, lender, debt, conn) => {
+const createBalance = async (conn, gid, borrower, lender, debt) => {
     try {
         const sql = `INSERT INTO debt_balance SET gid = ?, borrower = ?, lender = ?, amount=? `;
         const data = [gid, borrower, lender, debt];
@@ -79,18 +65,12 @@ const createBalance = async (gid, borrower, lender, debt, conn) => {
         return false;
     }
 };
-const updateBalance = async (conn, id, gid, newBalances, borrower, lender) => {
+const updateBalance = async (conn, id, borrower, lender, newBalance) => {
     try {
-        if ((borrower, lender)) {
-            //需要交換借貸關係
-            const sql = 'UPDATE debt_balance SET gid = ?, borrower = ?, lender = ?, amount=? WHERE id = ?';
-            const data = [gid, lender, borrower, newBalances, id]; //交換
-            await conn.execute(sql, data);
-        } else {
-            const sql = 'UPDATE debt_balance SET gid = ?, amount=? WHERE id = ?';
-            const data = [gid, newBalances, id];
-            await conn.execute(sql, data);
-        }
+        console.log('update balance params:', borrower, lender, newBalance);
+        const sql = 'UPDATE debt_balance SET borrower = ?, lender = ?, amount=? WHERE id = ?';
+        const data = [borrower, lender, newBalance, id];
+        await conn.execute(sql, data);
         return true;
     } catch (err) {
         console.log('ERROR AT updateBalance: ', err);
@@ -136,16 +116,32 @@ const deleteDebtBalance = async (conn, gid) => {
     }
 };
 
+const createBatchBalance = async (gid, memberCombo, conn) => {
+    //批次建立, 暫時沒用到
+    try {
+        //新增balance, 初始借貸為0
+        for (let pair of memberCombo) {
+            const sql = `INSERT INTO debt_balance (gid, lender, borrower, amount) VALUES (?,?,?,?)`;
+            const data = [gid, pair[0], pair[1], 0];
+            await conn.execute(sql, data);
+        }
+        return true;
+    } catch (err) {
+        console.log('ERROR AT createDebtBalance: ', err);
+        return null;
+    }
+};
+
 module.exports = {
     getDebtMain,
     getDebtDetail,
     createDebtMain,
     createDebtDetail,
-    createDebtBalance,
     getBalance,
     updateBalance,
     createBalance,
     deleteGroupDebts,
     deleteGroupPairDebts,
     deleteDebtBalance,
+    createBatchBalance,
 };

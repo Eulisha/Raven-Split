@@ -2,7 +2,7 @@ const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const { getBestPath } = require('../util/getBestPath');
 const pool = require('../config/mysql');
-const driver = require('../config/neo4j');
+const { neo4j, driver } = require('../config/neo4j');
 const pageSize = 25;
 
 const getDebtMain = async (req, res) => {
@@ -63,7 +63,6 @@ const postDebt = async (req, res) => {
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
-        //TODO:把detail拆開拆到一半
         const debtDetailResult = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
         if (!debtDetailResult) {
             throw new Error('Internal Server Error');
@@ -73,24 +72,22 @@ const postDebt = async (req, res) => {
         //2-1-1) 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
             // 原本是本次的borrower-own->lender
-            const getBalanceResult = await Debt.getBalance(debtMain.gid, debt.borrower, debtMain.lender, conn);
+            const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
                 throw new Error('Internal Server Error');
             }
-
-            // console.log('1: ', getBalanceResult);
             if (getBalanceResult.length !== 0) {
                 let debtId = getBalanceResult[0].id;
                 let originalDebt = getBalanceResult[0].amount;
                 let newBalance = originalDebt + debt.amount; //add more debt
-                const result = await Debt.updateBalance(conn, debtId, debtMain.gid, newBalance);
+                const result = await Debt.updateBalance(conn, debtId, debt.borrower, debtMain.lender, newBalance);
 
                 if (!result) {
                     throw new Error('Internal Server Error');
                 }
             } else {
                 //原本是本次的borrower <-own-lender
-                const getBalanceResult = await Debt.getBalance(debtMain.gid, debtMain.lender, debt.borrower, conn);
+                const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debtMain.lender, debt.borrower);
                 if (!getBalanceResult) {
                     throw new Error('Internal Server Error');
                 }
@@ -98,22 +95,23 @@ const postDebt = async (req, res) => {
                 // console.log('2: ', getBalanceResult);
                 if (getBalanceResult.length !== 0) {
                     let debtId = getBalanceResult[0].id;
-                    let newBalance = getBalanceResult[0].amount - debt.amount; //pay back
+                    let originalDebt = getBalanceResult[0].amount;
+                    let newBalance = originalDebt - debt.amount; //pay back
                     if (newBalance > 0) {
                         //  維持borrower <-own-lender
-                        const result = await Debt.updateBalance(conn, debtId, debtMain.gid, newBalance);
+                        const result = await Debt.updateBalance(conn, debtId, debtMain.lender, debt.borrower, newBalance);
                         if (!result) {
                             throw new Error('Internal Server Error');
                         }
                     } else {
                         // 改為borrower-own->lender
-                        const result = await Debt.updateBalance(conn, debtId, debtMain.gid, -newBalance, debtMain.lender, debt.borrower);
+                        const result = await Debt.updateBalance(conn, debtId, debt.borrower, debtMain.lender, -newBalance);
                         if (!result) {
                             throw new Error('Internal Server Error');
                         }
                     }
                 } else {
-                    const result = await Debt.createBalance(debtMain.gid, debt.borrower, debtMain.lender, debt.amount, conn);
+                    const result = await Debt.createBalance(conn, debtMain.gid, debt.borrower, debtMain.lender, debt.amount);
                     if (!result) {
                         throw new Error('Internal Server Error');
                     }
@@ -123,13 +121,15 @@ const postDebt = async (req, res) => {
         console.log('DB到這裡都完成了');
 
         //2-2) NEO4j best path graph加入新的帳
+        const session = driver.session();
+        neo4j.int(10);
         let borrowers = [];
         for (let debt of debtDetail) {
             if (debt.borrower !== debtMain.lender) {
                 borrowers.push(debt);
             }
         }
-        const updateGraphEdgeesult = await Graph.updateGraphEdge(session, debtMain.gid, debtMain.lender, borrowers);
+        const updateGraphEdgeesult = await Graph.updateEdge(session, debtMain.gid, debtMain.lender, borrowers);
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
 
         //全部成功，MySQL做commit
@@ -137,8 +137,6 @@ const postDebt = async (req, res) => {
         await conn.release();
         //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        //TODO:要試改成在外面get session
-        const session = driver.session();
         //3)NEO4j取出所有路徑，並計算出最佳解
         const [graph, debtsForUpdate] = await getBestPath(session, debtMain.gid);
         if (!debtsForUpdate) {
@@ -146,7 +144,7 @@ const postDebt = async (req, res) => {
         }
         data.graph = graph;
         //NEO4j更新best path graph
-        const updateGraph = Graph.updateGraphBestPath(debtsForUpdate);
+        const updateGraph = Graph.updateBestPath(debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
@@ -168,7 +166,7 @@ const getDebtDetail = async (req, res) => {
     }
 };
 
-const deleteDebts = async (req, res) => {
+const deleteGroupDebts = async (req, res) => {
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     const session = driver.session();
@@ -197,4 +195,24 @@ const deleteDebts = async (req, res) => {
         await conn.release();
     }
 };
-module.exports = { getDebtMain, getDebtDetail, postDebt, deleteDebts };
+
+const createBatchBalance = async (req, res) => {
+    //批次建立建立member balance, 暫時沒用到
+    //整理members的排列組合
+    let memberCombo = [];
+    for (let i = 0; i < members.length; i++) {
+        for (let j = 0; j < members.length - 1; j++) {
+            let x = i + j + 1;
+            if (x > members.length - 1) {
+                break;
+            }
+            memberCombo.push([members[i], members[x]]);
+        }
+    }
+    console.log(memberCombo);
+    const balanceResult = await Admin.createBatchBalance(groupId, memberCombo, conn);
+    if (!balanceResult) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+};
+module.exports = { getDebtMain, getDebtDetail, postDebt, deleteGroupDebts };
