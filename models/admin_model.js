@@ -61,4 +61,17 @@ const getGroupMembers = async (gid) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getUserGroups, getGroupMembers };
+
+const updateGroup = async (gid, group_name) => {
+    try {
+        // console.log(group_name);
+        const groupSql = 'UPDATE `groups` SET name = ? WHERE id = ?';
+        const groupData = [group_name, gid];
+        await pool.execute(groupSql, groupData);
+        return true;
+    } catch (err) {
+        console.log('ERROR AT updateGroup: ', err);
+        return null;
+    }
+};
+module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup };

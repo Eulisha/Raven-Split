@@ -53,4 +53,15 @@ const getGroupMembers = async (req, res) => {
     }
     res.status(200).json({ data: members });
 };
-module.exports = { createGroup, createMember, getUserGroups, getGroupMembers };
+const updateGroup = async (req, res) => {
+    console.log(req.body);
+    let gid = req.body.gid;
+    let group_name = req.body.group_name;
+    result = await Admin.updateGroup(gid, group_name);
+    if (!result) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    res.status(200).json({ data: null });
+};
+
+module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup };
