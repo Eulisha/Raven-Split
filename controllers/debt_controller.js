@@ -2,6 +2,7 @@ const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const { getBestPath } = require('../util/getBestPath');
 const pool = require('../config/mysql');
+const driver = require('../config/neo4j');
 const pageSize = 25;
 
 const getDebtMain = async (req, res) => {
@@ -161,12 +162,16 @@ const getDebtDetail = async (req, res) => {
 const deleteDebts = async (req, res) => {
     const conn = await pool.getConnection();
     await conn.beginTransaction();
+    const session = driver.session();
     try {
         console.log(req.params.id);
-        await Debt.deleteDebts(conn, req.params.id);
-        await Debt.deleteDebtBalance(conn, req.params.id);
-        // await Graph.deleteBestPath();
-        await conn.commit();
+        // await Debt.deleteDebts(conn, req.params.id);
+        // await Debt.deleteDebtBalance(conn, req.params.id);
+        await session.writeTransaction(async (txc) => {
+            await Graph.deleteBestPath(txc, req.params.id);
+            await Graph.createBestPath(txc);
+        });
+        // await conn.commit();
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();

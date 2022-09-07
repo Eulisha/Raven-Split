@@ -75,8 +75,12 @@ const updateGraphBestPath = async (debtsForUpdate) => {
     }
 };
 
-//TODO:刪除最佳解
-// const deleteBestPath = async();
+//刪除最佳解
+const deleteBestPath = async (txc, groupId) => {
+    const result = await txc.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: neo4j.int(groupId) });
+    console.log(result.summary.updateStatistics);
+    return true;
+};
 
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
@@ -151,4 +155,4 @@ const allPaths = async (session, currentSource, group, sinkNode) => {
     }
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphBestPath };
+module.exports = { allNodes, sourceEdge, allPaths, createGraphNodes, updateGraphEdge, updateGraphBestPath, deleteBestPath };
