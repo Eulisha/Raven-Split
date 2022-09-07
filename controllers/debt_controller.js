@@ -170,8 +170,8 @@ const getDebtDetail = async (req, res) => {
 };
 const getMeberBalances = async (req, res) => {
     try {
-        const gid = req.params;
-        const result = Debt.getAllBalances(gid);
+        const gid = req.params.id;
+        const result = await Debt.getAllBalances(gid);
         return res.status(200).json({ data: result });
     } catch (err) {
         console.log(err);
