@@ -63,5 +63,13 @@ const updateGroup = async (req, res) => {
     }
     res.status(200).json({ data: null });
 };
-
-module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup };
+const deleteMember = async (req, res) => {
+    const groupId = req.params.gid;
+    const userId = req.params.uid;
+    const result = await Admin.deleteMember(groupId, userId);
+    if (!result) {
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+    res.status(200).json({ data: null });
+};
+module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup, deleteMember };

@@ -74,4 +74,16 @@ const updateGroup = async (gid, group_name) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup };
+const deleteMember = async (gid, uid) => {
+    try {
+        console.log(gid, uid);
+        const sql = 'UPDATE members SET status = 0 WHERE gid = ? AND uid = ?';
+        const data = [gid, uid];
+        await pool.execute(sql, data);
+        return true;
+    } catch (err) {
+        console.log('ERROR AT deleteMember: ', err);
+        return null;
+    }
+};
+module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup, deleteMember };

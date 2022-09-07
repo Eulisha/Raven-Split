@@ -1,5 +1,5 @@
 const express = require('express');
-const { createGroup, getUserGroups, createMember, getGroupMembers, updateGroup } = require('../controllers/admin_controller');
+const { createGroup, getUserGroups, createMember, getGroupMembers, updateGroup, deleteMember } = require('../controllers/admin_controller');
 const { getDebtMain, postDebt, getDebtDetail, deleteGroupDebts, getMeberBalances, getSettle } = require('../controllers/debt_controller');
 const apiRoute = express.Router();
 
@@ -15,5 +15,6 @@ apiRoute.post('/debt', postDebt);
 apiRoute.put('/group', updateGroup);
 apiRoute.delete('/pair-debts');
 apiRoute.delete('/group-debts/:id', deleteGroupDebts);
+apiRoute.delete('/member/:gid/:uid', deleteMember);
 
 module.exports = apiRoute;
