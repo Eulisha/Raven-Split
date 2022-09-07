@@ -176,6 +176,19 @@ const getMeberBalances = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
+const getSettle = async (req, res) => {
+    const groupId = req.params.id;
+    const result = await Graph.getGraph(groupId);
+    if (result.records.length !== 0) {
+    }
+    const graph = result.records.map((record) => {
+        let amount = record.get('amount').toNumber();
+        let borrower = record.get('borrower').toNumber();
+        let lender = record.get('lender').toNumber();
+        return { borrower, lender, amount };
+    });
+    res.status(200).json({ data: graph });
+};
 
 const deleteGroupDebts = async (req, res) => {
     const conn = await pool.getConnection();
@@ -226,4 +239,4 @@ const createBatchBalance = async (req, res) => {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
-module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, postDebt, deleteGroupDebts };
+module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, postDebt, deleteGroupDebts };

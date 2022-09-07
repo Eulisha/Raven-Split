@@ -82,6 +82,24 @@ const createBestPath = async () => {
     '';
 };
 
+//取得圖
+const getGraph = async (gid) => {
+    const session = driver.session();
+    try {
+        console.log(gid);
+        const cypher =
+            'MATCH (g:group{name:$name}) WITH g MATCH (g:group)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g:group)  RETURN n.name AS borrower, r.amount AS amount, m.name AS lender, g.name AS group';
+        const data = { name: neo4j.int(gid) };
+        return await session.readTransaction(async (txc) => {
+            const result = await txc.run(cypher, data);
+            return result;
+        });
+    } catch (err) {
+        console.log('ERROR AT getGraph: ', err);
+    } finally {
+        session.close();
+    }
+};
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
 const allNodes = async (session, group) => {
@@ -155,4 +173,4 @@ const allPaths = async (session, currentSource, group, sinkNode) => {
     }
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createNodes, updateEdge, updateBestPath, deleteBestPath };
+module.exports = { allNodes, sourceEdge, allPaths, createNodes, updateEdge, updateBestPath, deleteBestPath, getGraph };

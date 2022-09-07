@@ -67,8 +67,8 @@ const getBestPath = async (session, group) => {
                     console.log(edge.relationship.properties.amount);
                     console.log(edge.end.properties.name);
                     //更新欠款圖graph的debt
-                    // graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber(); //TODO:不確定為什麼這邊不需要.toNumber
-                    graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount;
+                    graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber(); //TODO:不確定為什麼這邊不需要.toNumber
+                    // graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount;
                     //將碎片放進陣列中
                     edges.push([edge.start.properties.name.toNumber(), edge.end.properties.name.toNumber()]);
                     // console.log('放碎片：', edges);
