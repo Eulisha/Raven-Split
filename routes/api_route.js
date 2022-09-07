@@ -6,7 +6,7 @@ const apiRoute = express.Router();
 apiRoute.get('/settle');
 apiRoute.get('/user-groups/:id', getUserGroups);
 apiRoute.get('/debts', getDebtMain);
-apiRoute.get('/debt-detail', getDebtDetail);
+apiRoute.get('/debt-detail/:id', getDebtDetail);
 apiRoute.post('/group', createGroup);
 apiRoute.post('/debt', postDebt);
 apiRoute.delete('/pair-debts');
