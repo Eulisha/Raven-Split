@@ -1,12 +1,6 @@
 const { allNodes, sourceEdge, allPaths } = require('../models/graph_model.js');
 
-const neo4j = require('neo4j-driver');
-const host = process.env.NEO4J_HOST;
-const user = process.env.NEO4J_USER;
-const password = process.env.NEO4J_PASS;
-const driver = neo4j.driver(host, neo4j.auth.basic(user, password));
-
-const getBestPath = async (group) => {
+const getBestPath = async (group, session) => {
     try {
         console.time('all');
         const graph = {};
@@ -14,7 +8,7 @@ const getBestPath = async (group) => {
         const pathsStructure = {};
         const order = [];
         // console.log('search group:', group);
-        const session = driver.session();
+
         // 1) Neo4j get all path
         try {
             // 1-1) 查詢圖中所有node

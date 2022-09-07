@@ -129,7 +129,7 @@ const postDebt = async (req, res) => {
                 borrowers.push(debt);
             }
         }
-        const updateGraphEdgeesult = await Graph.updateGraphEdge(debtMain.gid, debtMain.lender, borrowers);
+        const updateGraphEdgeesult = await Graph.updateGraphEdge(session, debtMain.gid, debtMain.lender, borrowers);
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
 
         //全部成功，MySQL做commit
@@ -137,8 +137,10 @@ const postDebt = async (req, res) => {
         await conn.release();
         //TODO:處理沒有MATCH的狀況（不會跳error）
 
+        //TODO:要試改成在外面get session
+        const session = driver.session();
         //3)NEO4j取出所有路徑，並計算出最佳解
-        const [graph, debtsForUpdate] = await getBestPath(debtMain.gid);
+        const [graph, debtsForUpdate] = await getBestPath(session, debtMain.gid);
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
         }

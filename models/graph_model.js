@@ -1,14 +1,12 @@
+const driver = require('../config/neo4j');
+
+//TODO: 要弄懂session的定義才能繼續
 require('dotenv').config();
-const neo4j = require('neo4j-driver');
-const host = process.env.NEO4J_HOST;
-const user = process.env.NEO4J_USER;
-const password = process.env.NEO4J_PASS;
-const driver = neo4j.driver(host, neo4j.auth.basic(user, password));
 
 //建立節點
-const createGraphNodes = async (gid, members) => {
+const createGraphNodes = async (gid, members, conn) => {
+    const session = driver.session();
     try {
-        const session = driver.session();
         let map = [];
 
         for (let member of members) {
@@ -31,9 +29,8 @@ const createGraphNodes = async (gid, members) => {
 //TODO:重建最佳解
 
 //更新新的線
-const updateGraphEdge = async (gid, lender, borrowers) => {
+const updateGraphEdge = async (session, gid, lender, borrowers) => {
     try {
-        const session = driver.session();
         let map = [];
         for (let borrower of borrowers) {
             map.push({ name: neo4j.int(borrower.borrower), amount: neo4j.int(borrower.amount) }); //處理neo4j integer
