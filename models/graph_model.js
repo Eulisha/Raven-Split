@@ -76,7 +76,7 @@ const updateGraphBestPath = async (debtsForUpdate) => {
 };
 
 //TODO:刪除最佳解
-const deleteBestPath = async();
+// const deleteBestPath = async();
 
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node

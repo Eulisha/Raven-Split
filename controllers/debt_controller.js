@@ -50,13 +50,11 @@ const getDebtMain = async (req, res) => {
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
-    let conn;
+
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
 
     try {
-        //取得連線
-        conn = await pool.getConnection();
-        await conn.beginTransaction();
-
         //1) MYSQL 新增raw data
         const createDebtResult = await Debt.createDebt(debtMain, debtDetail, conn);
         if (!createDebtResult) {
@@ -159,16 +157,15 @@ const getDebtDetail = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
-// TODO: <目前狀態>有數個待確認的事項，決定了才能繼續寫
-// TODO:一個動作會觸發三個db操作時，有可能會打三隻??
-const postSettle = async (req, res) => {
+
+const deleteDebts = async (req, res) => {
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     try {
-        await Debt.deleteDebtMain(conn, req.body.debtId);
-        await Debt.deleteDebtDetail(conn, req.body.debtId);
-        // await Debt.deleteDebtBalance(conn, req.body.debtId);
-        await Graph.deleteBestPath();
+        console.log(req.params.id);
+        await Debt.deleteDebts(conn, req.params.id);
+        await Debt.deleteDebtBalance(conn, req.params.id);
+        // await Graph.deleteBestPath();
         await conn.commit();
     } catch (err) {
         console.log('error: ', err);
@@ -178,4 +175,4 @@ const postSettle = async (req, res) => {
         await conn.release();
     }
 };
-module.exports = { getDebtMain, getDebtDetail, postDebt, postSettle };
+module.exports = { getDebtMain, getDebtDetail, postDebt, deleteDebts };

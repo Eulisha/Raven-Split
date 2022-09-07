@@ -74,33 +74,30 @@ const updateBalance = async (conn, id, gid, newBalances, borrower, lender) => {
         return false;
     }
 };
-//TODO:確認是否有可能跟update的model共用
-const deleteDebtMain = async (conn, debtId) => {
+const deleteDebts = async (conn, gid) => {
     try {
-        //TODO:要決定歷史紀錄存的方式
-        console.log('debtId', debtId);
-        const sql = 'UPDATE debt_main SET status = 0 WHERE id = ?;';
-        const data = [debtId];
-        const [result] = await conn.execute(sql, data);
+        console.log('groupId:', gid);
+        const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
+        const data = [gid];
+        await conn.execute(sql, data);
         return true;
     } catch (err) {
         console.log('ERROR AT deleteDebtMain: ', err);
         return false;
     }
 };
-const deleteDebtDetail = async (conn, debtId) => {
+const deleteDebtBalance = async (conn, gid) => {
     try {
-        console.log('debtId', debtId);
-        //TODO:debt_detail目前是沒有status的，要考慮是否要加入
-        const sql = 'UPDATE debt_detail SET status = 0 WHERE debt_id = ?;';
-        const data = [debtId];
+        console.log('groupId:', gid);
+        const sql = 'DELETE FROM debt_balance WHERE gid = ?;';
+        const data = [gid];
         const [result] = await conn.execute(sql, data);
         console.log(result);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteDebtDetail: ', err);
+        console.log('ERROR AT deleteDebtBalance: ', err);
         return false;
     }
 };
 
-module.exports = { getDebtMain, getDebtDetail, createDebt, getBalance, updateBalance, createBalance, deleteDebtMain, deleteDebtDetail };
+module.exports = { getDebtMain, getDebtDetail, createDebt, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };
