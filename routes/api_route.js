@@ -9,6 +9,7 @@ apiRoute.get('/debts', getDebtMain);
 apiRoute.get('/debt-detail', getDebtDetail);
 apiRoute.post('/group', createGroup);
 apiRoute.post('/debt', postDebt);
-apiRoute.delete('/debts/:id', deleteDebts);
+apiRoute.delete('/pair-debts', deleteDebts);
+apiRoute.delete('/group-debts/:id', deleteDebts);
 
 module.exports = apiRoute;

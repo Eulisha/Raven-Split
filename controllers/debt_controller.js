@@ -173,14 +173,22 @@ const deleteDebts = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     try {
-        console.log(req.params.id);
-        // await Debt.deleteDebts(conn, req.params.id);
-        // await Debt.deleteDebtBalance(conn, req.params.id);
-        await session.writeTransaction(async (txc) => {
+        const gid = req.params.id;
+        if ((req.query.user1, req.query.user2)) {
+            //FIXME: 群組內兩兩結帳的狀況 不知道要怎麼算@@
+            await Debt.deleteGroupPairDebts(conn, gid, uid1, uid2);
+            await Debt.updateBalance;
+            await Debt.getBalance;
             await Graph.deleteBestPath(txc, req.params.id);
             await Graph.createBestPath(txc);
-        });
-        // await conn.commit();
+        } else {
+            //群組全體結帳的狀況
+            await Debt.deleteGroupDebts(conn, gid);
+            await Debt.deleteDebtBalance(conn, req.params.id);
+            await Graph.deleteBestPath(txc, req.params.id);
+        }
+        await conn.commit();
+        await session.close();
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();

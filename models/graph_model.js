@@ -26,7 +26,6 @@ const createGraphNodes = async (gid, members, conn) => {
         return null;
     }
 };
-//TODO:重建最佳解
 
 //更新新的線
 const updateGraphEdge = async (session, gid, lender, borrowers) => {
@@ -77,6 +76,10 @@ const deleteBestPath = async (txc, groupId) => {
     const result = await txc.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: neo4j.int(groupId) });
     console.log(result.summary.updateStatistics);
     return true;
+};
+//TODO:重建最佳解
+const createBestPath = async () => {
+    '';
 };
 
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query

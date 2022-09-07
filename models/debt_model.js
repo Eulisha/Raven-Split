@@ -97,9 +97,22 @@ const updateBalance = async (conn, id, gid, newBalances, borrower, lender) => {
         return false;
     }
 };
-const deleteDebts = async (conn, gid) => {
+const deleteGroupDebts = async (conn, gid) => {
     try {
         console.log('groupId:', gid);
+        const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
+        const data = [gid];
+        await conn.execute(sql, data);
+        return true;
+    } catch (err) {
+        console.log('ERROR AT deleteDebtMain: ', err);
+        return false;
+    }
+};
+//FIXME:不知道pair的要怎麼寫@@
+const deleteGroupPairDebts = async (conn, gid, uid1, uid2) => {
+    try {
+        console.log('parama:', gid, uid1, uid2);
         const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
         const data = [gid];
         await conn.execute(sql, data);
@@ -123,4 +136,16 @@ const deleteDebtBalance = async (conn, gid) => {
     }
 };
 
-module.exports = { getDebtMain, getDebtDetail, createDebtMain, createDebtDetail, createDebtBalance, getBalance, updateBalance, createBalance, deleteDebts, deleteDebtBalance };
+module.exports = {
+    getDebtMain,
+    getDebtDetail,
+    createDebtMain,
+    createDebtDetail,
+    createDebtBalance,
+    getBalance,
+    updateBalance,
+    createBalance,
+    deleteGroupDebts,
+    deleteGroupPairDebts,
+    deleteDebtBalance,
+};
