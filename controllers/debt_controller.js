@@ -160,7 +160,9 @@ const postDebt = async (req, res) => {
 
 const getDebtDetail = async (req, res) => {
     try {
-        await getDebtDetail(debtId);
+        const debtMainId = req.params.id;
+        const result = await Debt.getDebtDetail(debtMainId);
+        res.status(200).json({ data: result });
     } catch (err) {
         console.log(err);
         return res.status(500).json({ err });

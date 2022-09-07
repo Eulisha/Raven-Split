@@ -7,7 +7,7 @@ apiRoute.get('/settle/:id', getSettle);
 apiRoute.get('/user-groups/:id', getUserGroups);
 apiRoute.get('/debts', getDebtMain);
 apiRoute.get('/debts-balances', getMeberBalances);
-apiRoute.get('/debt-detail', getDebtDetail);
+apiRoute.get('/debt-detail/:id', getDebtDetail);
 apiRoute.post('/group', createGroup);
 apiRoute.post('/debt', postDebt);
 apiRoute.delete('/pair-debts');

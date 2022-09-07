@@ -3,16 +3,24 @@ const pool = require('../config/mysql');
 const getDebtMain = async (group, pageSize, paging) => {
     // const debtMainSql = 'SELECT id, debt_date, title, total, lender FROM debt_main WHERE gid = ? ORDER BY debt_date DESC, id ASC LIMIT ?, ?;'; //排序方式為日期+建立順序(id)
     // const [debtMainResult] = await pool.query(debtMainSql, [group, page, pageSize]);
-    const debtMainSql = 'SELECT id, debt_date, title, total, lender FROM debt_main WHERE gid = ? LIMIT ? OFFSET ? AND status = 1;'; //排序方式為日期+建立順序(id)
+    const debtMainSql = 'SELECT id, debt_date, title, total, lender FROM debt_main WHERE gid = ? AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
     const debtMainResult = await pool.query(debtMainSql, [group, pageSize, pageSize * paging]);
     return debtMainResult;
 };
 
-const getDebtDetail = async (debtId, uid) => {
+const getDebtDetail = async (debtMainId, uid) => {
     if (uid) {
-        const debtDetailSql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
-        const debtDetailResult = await pool.execute(debtDetailSql, [debtId, uid]);
-        return debtDetailResult;
+        //查該筆帳某個人的分帳
+        const sql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
+        const data = [debtMainId, uid];
+        const [result] = await pool.execute(sql, data);
+        return result;
+    } else {
+        //查該筆帳的所有分帳
+        const sql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ?';
+        const data = [debtMainId];
+        const [result] = await pool.execute(sql, data);
+        return result;
     }
 };
 
