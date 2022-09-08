@@ -42,7 +42,7 @@ const getDebtMain = async (req, res) => {
             };
             debtMainRecords.push(debtMainRecord);
         }
-        res.status(200).json(debtMainRecords);
+        res.status(200).json({ data: debtMainRecords });
     } catch (err) {
         console.log(err);
         return res.status(500).json({ err });
