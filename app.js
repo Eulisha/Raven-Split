@@ -6,10 +6,11 @@ const port = PORT;
 const express = require('express');
 const apiRoute = require('./routes/api_route');
 const app = express();
+const cors = require('cors');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cors());
 //Routes
 app.use('/', express.static('public'));
 app.use('/api', apiRoute);
