@@ -11,7 +11,7 @@ const getDebtMain = async (group, pageSize, paging) => {
 const getDebtDetail = async (debtMainId, uid) => {
     if (uid) {
         //查該筆帳某個人的分帳
-        const sql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
+        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
         const data = [debtMainId, uid];
         const [result] = await pool.execute(sql, data);
         return result;
