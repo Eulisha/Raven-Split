@@ -17,7 +17,7 @@ const getDebtDetail = async (debtMainId, uid) => {
         return result;
     } else {
         //查該筆帳的所有分帳
-        const sql = 'SELECT borrower, amount FROM debt_detail WHERE debt_main_id = ?';
+        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_main_id = ?';
         const data = [debtMainId];
         const [result] = await pool.execute(sql, data);
         return result;
