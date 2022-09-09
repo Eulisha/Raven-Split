@@ -38,7 +38,7 @@ const getDebtMain = async (req, res) => {
                 total: debtMain.total,
                 isOwned,
                 lender: debtMain.lender,
-                ownAmount,
+                ownAmount: debtDetailResult.amount,
             };
             debtMainRecords.push(debtMainRecord);
         }
