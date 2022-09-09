@@ -70,6 +70,7 @@ const postDebt = async (req, res) => {
         }
 
         //2-1) MYSQL balance table 加入新的帳
+        await updateBalance(conn, debtMain, debtDetail);
         //2-1-1) 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
             // 原本是本次的borrower-own->lender
@@ -120,7 +121,6 @@ const postDebt = async (req, res) => {
             }
         }
         console.log('DB到這裡都完成了');
-
         //2-2) NEO4j best path graph加入新的帳
         const session = driver.session();
         neo4j.int(10);
@@ -191,26 +191,35 @@ const getSettle = async (req, res) => {
     });
     res.status(200).json({ data: graph });
 };
+const postSettle = async (req, res) => {
+    if ((req.query.user1, req.query.user2)) {
+        //FIXME: 群組內兩兩結帳的狀況 不知道要怎麼算@@
+        await Debt.deleteGroupPairDebts(conn, gid, uid1, uid2);
+        await Debt.getBalance;
+        await Graph.deleteBestPath(txc, req.params.id);
+        await Graph.createBestPath(txc);
+    } else {
+        //群組全體結帳的狀況
+        await Debt.deleteGroupDebts(conn, gid);
+        await Debt.deleteDebtBalance(conn, req.params.id);
+        await Graph.deleteBestPath(txc, req.params.id);
+    }
+};
+const deleteDebt = async (req, res) => {
+    const debtId = req.params.debtid;
+    const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
+    const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
 
-const deleteGroupDebts = async (req, res) => {
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     const session = driver.session();
     try {
-        const gid = req.params.id;
-        if ((req.query.user1, req.query.user2)) {
-            //FIXME: 群組內兩兩結帳的狀況 不知道要怎麼算@@
-            await Debt.deleteGroupPairDebts(conn, gid, uid1, uid2);
-            await Debt.updateBalance;
-            await Debt.getBalance;
-            await Graph.deleteBestPath(txc, req.params.id);
-            await Graph.createBestPath(txc);
-        } else {
-            //群組全體結帳的狀況
-            await Debt.deleteGroupDebts(conn, gid);
-            await Debt.deleteDebtBalance(conn, req.params.id);
-            await Graph.deleteBestPath(txc, req.params.id);
-        }
+        const status = 0; //customer delete
+        //mysql set debt status to 0
+        await Debt.deleteDebt(conn, debtId, status);
+        //mysql update balance
+        await Debt.updateBalance(conn, debtMain, debtDetail);
+        //Neo4j
         await conn.commit();
         await session.close();
     } catch (err) {
@@ -239,6 +248,59 @@ const createBatchBalance = async (req, res) => {
     const balanceResult = await Admin.createBatchBalance(groupId, memberCombo, conn);
     if (!balanceResult) {
         return res.status(500).json({ err: 'Internal Server Error' });
+    }
+};
+
+//function 區
+const updateBalance = async (conn, debtMain, debtDetail) => {
+    //拉出pair本來的借貸並更新
+    for (let debt of debtDetail) {
+        // 原本是本次的borrower-own->lender
+        const getBalanceResult = await Debt.getBalance(conn, gid, debt.borrower, debtMain.lender);
+        if (!getBalanceResult) {
+            throw new Error('Internal Server Error');
+        }
+        if (getBalanceResult.length !== 0) {
+            let balanceId = getBalanceResult[0].id;
+            let originalDebt = getBalanceResult[0].amount;
+            let newBalance = originalDebt + debt.amount; //add more debt
+            const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, newBalance);
+
+            if (!result) {
+                throw new Error('Internal Server Error');
+            }
+        } else {
+            //原本是本次的borrower <-own-lender
+            const getBalanceResult = await Debt.getBalance(conn, gid, debtMain.lender, debt.borrower);
+            if (!getBalanceResult) {
+                throw new Error('Internal Server Error');
+            }
+
+            // console.log('2: ', getBalanceResult);
+            if (getBalanceResult.length !== 0) {
+                let balanceId = getBalanceResult[0].id;
+                let originalDebt = getBalanceResult[0].amount;
+                let newBalance = originalDebt - debt.amount; //pay back
+                if (newBalance > 0) {
+                    //  維持borrower <-own-lender
+                    const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, newBalance);
+                    if (!result) {
+                        throw new Error('Internal Server Error');
+                    }
+                } else {
+                    // 改為borrower-own->lender
+                    const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, -newBalance);
+                    if (!result) {
+                        throw new Error('Internal Server Error');
+                    }
+                }
+            } else {
+                const result = await Debt.createBalance(conn, gid, debt.borrower, debtMain.lender, debt.amount);
+                if (!result) {
+                    throw new Error('Internal Server Error');
+                }
+            }
+        }
     }
 };
 module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, postDebt, deleteGroupDebts };

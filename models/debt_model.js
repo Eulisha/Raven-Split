@@ -109,16 +109,15 @@ const deleteGroupDebts = async (conn, gid) => {
         return false;
     }
 };
-//FIXME:不知道pair的要怎麼寫@@
-const deleteGroupPairDebts = async (conn, gid, uid1, uid2) => {
+const deleteDebt = async (conn, debtId, status) => {
     try {
-        console.log('parama:', gid, uid1, uid2);
-        const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
-        const data = [gid];
+        console.log('parama:', gid, debtId);
+        const sql = 'UPDATE debt_main SET status = ? WHERE debtId = ?;'; //customer delete: 0 customer update: -1
+        const data = [status, debtId];
         await conn.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteDebtMain: ', err);
+        console.log('ERROR AT deleteDebt: ', err);
         return false;
     }
 };
@@ -162,7 +161,7 @@ module.exports = {
     updateBalance,
     createBalance,
     deleteGroupDebts,
-    deleteGroupPairDebts,
+    deleteDebt,
     deleteDebtBalance,
     createBatchBalance,
 };
