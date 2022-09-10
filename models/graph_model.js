@@ -28,23 +28,24 @@ const createNodes = async (gid, members, conn) => {
 };
 
 //更新新的線
-const updateEdge = async (session, gid, lender, borrowers) => {
+const updateEdge = async (session, debtMain, borrowers) => {
     try {
         let map = [];
         for (let borrower of borrowers) {
             map.push({ name: neo4j.int(borrower.borrower), amount: neo4j.int(borrower.amount) }); //處理neo4j integer
         }
+        console.log('borrower map*****', map);
 
         return await session.writeTransaction(async (txc) => {
             const result = await txc.run(
-                'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender,g UNWIND $borrowers AS b MATCH (m:person)-[:member_of]->(g) WHERE m.name = b.name CREATE (m)-[r:own]->(lender) SET r.amount = b.amount',
+                'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender,g UNWIND $borrowers AS b MATCH (m:person)-[:member_of]->(g) WHERE m.name = b.name MERGE (m)-[r:own]->(lender) SET r.amount = r.amount + b.amount',
                 {
-                    gid: neo4j.int(gid),
-                    lender: neo4j.int(lender),
+                    gid: neo4j.int(debtMain.gid),
+                    lender: neo4j.int(debtMain.lender),
                     borrowers: map,
                 }
             );
-            // console.log('結果：', result.summary.updateStatistics);
+            console.log('結果：', result.summary.updateStatistics);
             return true;
         });
     } catch (err) {
@@ -104,7 +105,6 @@ const getGraph = async (gid) => {
 //查詢圖中所有node
 const allNodes = async (session, group) => {
     try {
-        console.log(session);
         return await session.writeTransaction(async (txc) => {
             const result = await txc.run(`MATCH (n:person)-[:member_of]-> (:group{name:$group}) RETURN n.name AS name`, { group: neo4j.int(group) });
             // await session.close();

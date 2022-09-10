@@ -20,6 +20,7 @@ const createGroup = async (req, res) => {
     }
     const groupId = groupResult;
 
+    console.log('to Neo:   ', groupId, members);
     //Neo4j建立節點
     const graphResult = await Graph.createNodes(groupId, members, conn);
     if (!graphResult) {

@@ -111,8 +111,8 @@ const deleteGroupDebts = async (conn, gid) => {
 };
 const deleteDebt = async (conn, debtId, status) => {
     try {
-        console.log('parama:', gid, debtId);
-        const sql = 'UPDATE debt_main SET status = ? WHERE debtId = ?;'; //customer delete: 0 customer update: -1
+        console.log('delete parama:', debtId, status);
+        const sql = 'UPDATE debt_main SET status = ? WHERE id = ?;'; //customer delete: 0 customer update: -1
         const data = [status, debtId];
         await conn.execute(sql, data);
         return true;
