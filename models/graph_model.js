@@ -27,24 +27,37 @@ const createNodes = async (gid, members, conn) => {
     }
 };
 
-//更新新的線
-const updateEdge = async (session, debtMain, borrowers) => {
+//查欠債關係線
+const getCurrEdge = async (session, debtMain, map) => {
     try {
-        let map = [];
-        for (let borrower of borrowers) {
-            map.push({ name: neo4j.int(borrower.borrower), amount: neo4j.int(borrower.amount) }); //處理neo4j integer
-        }
-        console.log('borrower map*****', map);
+        return await session.writeTransaction(async (txc) => {
+            let map1 = map;
+            console.log(map1);
+            const result = await txc.run(
+                'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender, g UNWIND $borrowers AS b MATCH (borrower:person)-[:member_of]->(g:group{name:$gid}) WHERE borrower.name = b.name WITH lender, borrower MERGE (borrower)-[r:own]-(lender) ON CREATE SET r.amount = 0 RETURN startNode(r).name AS start, endNode(r).name AS end, r.amount AS amount',
+                { gid: neo4j.int(debtMain.gid), lender: neo4j.int(debtMain.lender), borrowers: map1 }
+            );
+            return result;
+        });
+    } catch (err) {
+        console.log('ERROR AT getCurrEdge: ', err);
+        return null;
+    }
+};
 
+//更新新的線
+const updateEdge = async (session, gid, newMap) => {
+    try {
         return await session.writeTransaction(async (txc) => {
             const result = await txc.run(
-                'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender,g UNWIND $borrowers AS b MATCH (m:person)-[:member_of]->(g) WHERE m.name = b.name MERGE (m)-[r:own]->(lender) SET r.amount = r.amount + b.amount',
+                'UNWIND $debts AS debt MATCH (lender:person)-[:member_of]->(g:group{name:$gid}) WHERE lender.name = debt.lender with lender, g, debt MATCH (borrower:person)-[:member_of]->(g) WHERE borrower.name = debt.borrower WITH lender, borrower, debt MATCH (borrower)-[r:own]->(lender) SET r.amount = debt.amount RETURN r',
+                // 'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender,g UNWIND $borrowers AS b MATCH (m:person)-[:member_of]->(g) WHERE m.name = b.name MERGE (m)-[r:own]->(lender) SET r.amount = r.amount + b.amount'
                 {
-                    gid: neo4j.int(debtMain.gid),
-                    lender: neo4j.int(debtMain.lender),
-                    borrowers: map,
+                    gid, //已做過neo4j.int處理
+                    debts: newMap, //已做過neo4j.int處理
                 }
             );
+            console.log('record: ', result.records);
             return true;
         });
     } catch (err) {
@@ -172,4 +185,4 @@ const allPaths = async (session, currentSource, group, sinkNode) => {
     }
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createNodes, updateEdge, updateBestPath, deleteBestPath, getGraph };
+module.exports = { allNodes, sourceEdge, allPaths, createNodes, getCurrEdge, updateEdge, updateBestPath, deleteBestPath, getGraph };

@@ -75,7 +75,7 @@ const postDebt = async (req, res) => {
         }
         console.log('DB到這裡都完成了');
 
-        //2-2) NEO4j best path graph加入新的帳
+        //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
         const session = driver.session();
         const updateGraphEdgeesult = await updateGraphEdge(session, debtMain, debtDetail);
         if (!updateGraphEdgeesult) {
@@ -308,7 +308,7 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
     try {
         //拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
-            // 原本是本次的borrower-own->lender
+            // 原本債務關係和目前一樣 borrower-own->lender
             const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
                 throw new Error('Internal Server Error');
@@ -323,7 +323,7 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
                     throw new Error('Internal Server Error');
                 }
             } else {
-                //原本是本次的borrower <-own-lender
+                //原本債務關係和目前相反 borrower <-own-lender
                 const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debtMain.lender, debt.borrower);
                 if (!getBalanceResult) {
                     throw new Error('Internal Server Error');
@@ -361,15 +361,43 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
 };
 const updateGraphEdge = async (session, debtMain, debtDetail) => {
     try {
-        neo4j.int(10);
-        let borrowers = [];
+        let map = [];
         for (let debt of debtDetail) {
             if (debt.borrower !== debtMain.lender) {
-                borrowers.push(debt);
+                //剔除自己的債
+                map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
             }
         }
-        console.log('for Neo:   ', debtMain, borrowers);
-        const updateGraphEdgeesult = await Graph.updateEdge(session, debtMain, borrowers);
+
+        //先查出原本的債務線
+        const getEdgeResult = await Graph.getCurrEdge(session, debtMain, map);
+
+        //TODO:加上這次的帳
+        let newMap = [];
+        const newBalance = getEdgeResult.records.map((oldDebt, ind) => {
+            let start = oldDebt.get('start');
+            let end = oldDebt.get('end');
+            let originalDebt = oldDebt.get('amount').toNumber();
+            if (start === debtDetail[ind].borrower) {
+                // 原本債務關係和目前一樣 borrower-own->lender
+                let newBalance = originalDebt + debtDetail[ind].amount;
+                newMap.push({ lender: start, borrower: end, amount: neo4j.int(newBalance) });
+            } else {
+                // 原本債務關係和目前相反 borrower<-own-lender
+                let newBalance = originalDebt - debtDetail[ind].amount;
+                if (newBalance > 0) {
+                    // 維持borrower <-own-lender
+                    newMap.push({ lender: start, borrower: end, amount: neo4j.int(newBalance) });
+                } else {
+                    // 改為borrower-own->lender
+                    newMap.push({ lender: end, borrower: start, amount: neo4j.int(-newBalance) });
+                }
+            }
+        });
+        //更新線
+        console.log('for Neo:   ', newMap);
+        const updateGraphEdgeesult = await Graph.updateEdge(session, neo4j.int(debtMain.gid), newMap);
+        // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
         return updateGraphEdgeesult;
     } catch (err) {
         console.log(err);
