@@ -45,7 +45,6 @@ const updateEdge = async (session, debtMain, borrowers) => {
                     borrowers: map,
                 }
             );
-            console.log('結果：', result.summary.updateStatistics);
             return true;
         });
     } catch (err) {

@@ -155,6 +155,82 @@ const postSettle = async (req, res) => {
         await Graph.deleteBestPath(txc, req.params.id);
     }
 };
+const updateDebt = async (req, res) => {
+    const debtId = req.body.debt_Id;
+    const debtMainOld = req.body.debt_main_old; //{gid, debt_date, title, total, lender, split_method}
+    const debtDetailOld = req.body.debt_detail_old; //{ [ { borrower, amount} ] }
+    const debtMainNew = req.body.debt_main_new;
+    const debtDetailNew = req.body.debt_detail_new;
+    const data = {};
+
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const session = driver.session();
+
+    try {
+        const status = 0; //custom update, create new one directly
+
+        //1) mysql set previous debt status to 0
+        const deleteResult = await Debt.deleteDebt(conn, debtId, status);
+        if (!deleteResult) {
+            throw new Error('Internal Server Error');
+        }
+
+        //2) MYSQL create new raw data
+        const debtMainId = await Debt.createDebtMain(conn, debtMainNew);
+        data.debtId = debtMainId;
+        if (!debtMainId) {
+            throw new Error('Internal Server Error');
+        }
+        const debtDetailResult = await Debt.createDebtDetail(conn, debtMainId, debtDetailNew);
+        if (!debtDetailResult) {
+            throw new Error('Internal Server Error');
+        }
+
+        //set debt amount reversely stand for delete
+        debtDetailOld.forEach((ele, ind) => {
+            debtDetailOld[ind].amount = -ele.amount;
+        });
+
+        //3) mysql update balance
+        const oldBalanceResult = await updateBalance(conn, debtMainOld, debtDetailOld);
+        if (!oldBalanceResult) {
+            throw new Error('Internal Server Error');
+        }
+        const newBalanceResult = await updateBalance(conn, debtMainNew, debtDetailNew);
+        if (!newBalanceResult) {
+            throw new Error('Internal Server Error');
+        }
+
+        //4)Neo4j update edge
+        const oldEdgeesult = await updateGraphEdge(session, debtMainOld, debtDetailOld);
+        const newEdgeesult = await updateGraphEdge(session, debtMainNew, debtDetailNew);
+        console.log('Neo4j更新線的結果：', oldEdgeesult);
+        console.log('Neo4j更新線的結果：', newEdgeesult);
+
+        //5)算最佳解
+        const [graph, debtsForUpdate] = await getBestPath(session, debtMainNew.gid);
+        if (!debtsForUpdate) {
+            throw new Error('Internal Server Error');
+        }
+
+        //NEO4j更新best path graph
+        const updateGraph = Graph.updateBestPath(debtsForUpdate);
+        if (!updateGraph) {
+            throw new Error('Internal Server Error');
+        }
+        res.status(200).json({ data: graph });
+
+        await conn.commit();
+        await session.close();
+    } catch (err) {
+        console.log('error: ', err);
+        await conn.rollback();
+        return res.status(500).json({ err });
+    } finally {
+        await conn.release();
+    }
+};
 const deleteDebt = async (req, res) => {
     const debtId = req.body.debt_id;
     const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
@@ -170,7 +246,7 @@ const deleteDebt = async (req, res) => {
     const session = driver.session();
 
     try {
-        const status = 0; //customer delete
+        const status = 4; //customer delete
         //mysql set debt status to 0
         const deleteResult = await Debt.deleteDebt(conn, debtId, status);
         if (!deleteResult) {
@@ -454,4 +530,4 @@ const getBestPath = async (session, group) => {
 // getBestPath();
 module.exports = { getBestPath };
 
-module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, postDebt, deleteDebt };
+module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, postDebt, updateDebt, deleteDebt };
