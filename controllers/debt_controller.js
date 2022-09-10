@@ -55,6 +55,7 @@ const postDebt = async (req, res) => {
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
+    const session = driver.session();
 
     try {
         //1) MYSQL 新增raw data
@@ -76,16 +77,11 @@ const postDebt = async (req, res) => {
         console.log('DB到這裡都完成了');
 
         //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
-        const session = driver.session();
         const updateGraphEdgeesult = await updateGraphEdge(session, debtMain, debtDetail);
         if (!updateGraphEdgeesult) {
             throw new Error('Internal Server Error');
         }
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
-
-        //全部成功，MySQL做commit
-        await conn.commit();
-        await conn.release();
         //TODO:處理沒有MATCH的狀況（不會跳error）
 
         //3)NEO4j取出所有路徑，並計算出最佳解
@@ -95,15 +91,22 @@ const postDebt = async (req, res) => {
         }
         data.graph = graph;
         //NEO4j更新best path graph
+        console.log('debtsForUpdate:  ', debtsForUpdate);
         const updateGraph = Graph.updateBestPath(debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
+
+        //全部成功，MySQL做commit
+        await conn.commit();
+        await conn.release();
+        session.close();
         res.status(200).json(data);
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
         await conn.release();
+        session.close();
         return res.status(500).json({ err });
     }
 };
@@ -186,7 +189,7 @@ const updateDebt = async (req, res) => {
         if (!debtDetailResult) {
             throw new Error('Internal Server Error');
         }
-
+        console.log(debtDetailOld);
         //set debt amount reversely stand for delete
         debtDetailOld.forEach((ele, ind) => {
             debtDetailOld[ind].amount = -ele.amount;
@@ -203,6 +206,7 @@ const updateDebt = async (req, res) => {
         }
 
         //4)Neo4j update edge
+        console.log('start neo4j');
         const oldEdgeesult = await updateGraphEdge(session, debtMainOld, debtDetailOld);
         const newEdgeesult = await updateGraphEdge(session, debtMainNew, debtDetailNew);
         console.log('Neo4j更新線的結果：', oldEdgeesult);
@@ -213,22 +217,24 @@ const updateDebt = async (req, res) => {
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
         }
-
+        data.graph = graph;
         //NEO4j更新best path graph
+        console.log('debtsForUpdate:  ', debtsForUpdate);
         const updateGraph = Graph.updateBestPath(debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
-        res.status(200).json({ data: graph });
 
+        //全部成功，MySQL做commit
         await conn.commit();
-        await session.close();
+        await conn.release();
+        session.close();
+        res.status(200).json({ data: graph });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
+        session.close();
         return res.status(500).json({ err });
-    } finally {
-        await conn.release();
     }
 };
 const deleteDebt = async (req, res) => {
@@ -239,7 +245,6 @@ const deleteDebt = async (req, res) => {
     debtDetail.forEach((ele, ind) => {
         debtDetail[ind].amount = -ele.amount;
     });
-    console.log('parmas for query:  ', debtId, debtMain, debtDetail);
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -252,14 +257,21 @@ const deleteDebt = async (req, res) => {
         if (!deleteResult) {
             throw new Error('Internal Server Error');
         }
+        //set debt amount reversely stand for delete
+        debtDetail.forEach((ele, ind) => {
+            debtDetail[ind].amount = -ele.amount;
+        });
         //mysql update balance
         const updateBalanceResult = await updateBalance(conn, debtMain, debtDetail);
         if (!updateBalanceResult) {
             throw new Error('Internal Server Error');
         }
         //Neo4j update edge
+        console.log('start neo4j');
         const updateGraphEdgeesult = await updateGraphEdge(session, debtMain, debtDetail);
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
+
+        //calculate best path
         const [graph, debtsForUpdate] = await getBestPath(session, debtMain.gid);
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
@@ -270,16 +282,15 @@ const deleteDebt = async (req, res) => {
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
-        res.status(200).json({ data: graph });
-
+        //全部成功，MySQL做commit
         await conn.commit();
-        await session.close();
+        await conn.release();
+        session.close();
+        res.status(200).json({ data: graph });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
         return res.status(500).json({ err });
-    } finally {
-        await conn.release();
     }
 };
 
@@ -360,42 +371,60 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
     }
 };
 const updateGraphEdge = async (session, debtMain, debtDetail) => {
+    console.log('@ function updateGraphEdge @');
     try {
         let map = [];
         for (let debt of debtDetail) {
+            // console.log('debt:', debt);
             if (debt.borrower !== debtMain.lender) {
                 //剔除自己的債
+                console.log(
+                    'To Neo get curr new debt: ',
+                    'gid',
+                    neo4j.int(debtMain.gid),
+                    'borrower',
+                    neo4j.int(debt.borrower),
+                    'lender',
+                    neo4j.int(debtMain.lender),
+                    'amount',
+                    neo4j.int(debt.amount)
+                );
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
             }
         }
 
         //先查出原本的債務線
-        const getEdgeResult = await Graph.getCurrEdge(session, debtMain, map);
-
+        const getEdgeResult = await Graph.getCurrEdge(session, neo4j.int(debtMain.gid), neo4j.int(debtMain.lender), map);
         //TODO:加上這次的帳
         let newMap = [];
-        const newBalance = getEdgeResult.records.map((oldDebt, ind) => {
-            let start = oldDebt.get('start');
-            let end = oldDebt.get('end');
+        getEdgeResult.records.forEach((oldDebt, ind) => {
+            console.log(oldDebt);
+            let start = oldDebt.get('start').toNumber();
+            let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
+            // console.log('current:', start, end, originalDebt);
             if (start === debtDetail[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let newBalance = originalDebt + debtDetail[ind].amount;
-                newMap.push({ lender: start, borrower: end, amount: neo4j.int(newBalance) });
+                console.log('balance1: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
+                newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
             } else {
                 // 原本債務關係和目前相反 borrower<-own-lender
                 let newBalance = originalDebt - debtDetail[ind].amount;
                 if (newBalance > 0) {
                     // 維持borrower <-own-lender
-                    newMap.push({ lender: start, borrower: end, amount: neo4j.int(newBalance) });
+                    console.log('balance2: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
+                    newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
                 } else {
                     // 改為borrower-own->lender
-                    newMap.push({ lender: end, borrower: start, amount: neo4j.int(-newBalance) });
+                    newBalance = -newBalance;
+                    console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
+                    newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
                 }
             }
         });
         //更新線
-        console.log('for Neo:   ', newMap);
+        // console.log('for Neo newMap:   ', newMap);
         const updateGraphEdgeesult = await Graph.updateEdge(session, neo4j.int(debtMain.gid), newMap);
         // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
         return updateGraphEdgeesult;
@@ -405,7 +434,7 @@ const updateGraphEdge = async (session, debtMain, debtDetail) => {
     }
 };
 
-const getBestPath = async (session, group) => {
+const getBestPath = async (session, gid) => {
     try {
         console.time('all');
         const graph = {};
@@ -418,7 +447,8 @@ const getBestPath = async (session, group) => {
         try {
             // 1-1) 查詢圖中所有node
             console.time('db1');
-            const allNodesResult = await Graph.allNodes(session, group);
+            console.log('TO Neo allNode:  ', neo4j.int(gid));
+            const allNodesResult = await Graph.allNodes(session, neo4j.int(gid));
             console.timeEnd('db1');
             allNodesResult.records.forEach((element) => {
                 let name = element.get('name').toNumber();
@@ -430,14 +460,15 @@ const getBestPath = async (session, group) => {
             // 1-2) 查每個source出去的edge數量
             for (let source of allNodeList) {
                 console.time('db2');
-                const sourceEdgeResult = await Graph.sourceEdge(session, source, group);
+                console.log('To Neo sourceEdge:  ', neo4j.int(gid), neo4j.int(source));
+                const sourceEdgeResult = await Graph.sourceEdge(session, neo4j.int(gid), neo4j.int(source));
                 console.timeEnd('db2');
                 pathsStructure[source] = { sinksSummary: { sinks: [], qty: 0 }, sinks: {} };
                 pathsStructure[source].sinksSummary.qty = sourceEdgeResult.records.length; //紀錄qty
                 sourceEdgeResult.records.forEach((element, index) => {
                     pathsStructure[source].sinksSummary.sinks.push(element.get('name').toNumber());
                 });
-                order.push({ source: source, qty: pathsStructure[source].sinksSummary.qty }); //同步放進order的列表中
+                order.push({ source, qty: pathsStructure[source].sinksSummary.qty }); //同步放進order的列表中
             }
             order.sort((a, b) => {
                 return b.qty - a.qty; //排序列表供後面決定順序用
@@ -454,7 +485,8 @@ const getBestPath = async (session, group) => {
             let currentSource = source.source; //當前的source
             console.time('db3');
             // 1-3) 查所有的路徑
-            const pathsResult = await Graph.allPaths(session, currentSource, group);
+            console.log('To Neo allPath:  ', neo4j.int(gid), neo4j.int(currentSource));
+            const pathsResult = await Graph.allPaths(session, neo4j.int(gid), neo4j.int(currentSource));
             // console.log(pathsResult);
             console.timeEnd('db3');
             //第二層：iterate paths in source
@@ -468,7 +500,15 @@ const getBestPath = async (session, group) => {
                 //第三層：iterate edges in path
                 let edges = []; //組成path的碎片陣列
                 pathsResult.records[i]._fields[0].segments.forEach((edge) => {
-                    console.log('edge from neo:  ', 'start:', edge.start.properties.name, 'r: ', edge.relationship.properties.amount, 'end:', edge.end.properties.name);
+                    console.log(
+                        'From neo edge:  ',
+                        'start:',
+                        edge.start.properties.name.toNumber(),
+                        'r: ',
+                        edge.relationship.properties.amount.toNumber(),
+                        'end:',
+                        edge.end.properties.name.toNumber()
+                    );
                     //更新欠款圖graph的debt
                     graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber(); //TODO:不確定為什麼這邊不需要.toNumber
                     // graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount;
@@ -541,7 +581,8 @@ const getBestPath = async (session, group) => {
                 if (totalFlow) {
                     // console.log('總ttlflow:', totalFlow);
                     graph[source.source][sink] += totalFlow;
-                    debtsForUpdate.push({ borrowerId: source.source, lenderId: sink, adjust: totalFlow });
+                    console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(graph[source.source][sink]));
+                    debtsForUpdate.push({ borrowerId: neo4j.int(source.source), lenderId: neo4j.int(sink), amount: neo4j.int(graph[source.source][sink]) });
                     // console.log('加流量：', graph);
                 }
             });

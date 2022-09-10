@@ -87,7 +87,6 @@ const createBalance = async (conn, gid, borrower, lender, debt) => {
 };
 const updateBalance = async (conn, id, borrower, lender, newBalance) => {
     try {
-        console.log('update balance params:', borrower, lender, newBalance);
         const sql = 'UPDATE debt_balance SET borrower = ?, lender = ?, amount=? WHERE id = ?';
         const data = [borrower, lender, newBalance, id];
         await conn.execute(sql, data);
@@ -111,7 +110,6 @@ const deleteGroupDebts = async (conn, gid) => {
 };
 const deleteDebt = async (conn, debtId, status) => {
     try {
-        console.log('delete parama:', debtId, status);
         const sql = 'UPDATE debt_main SET status = ? WHERE id = ?;'; //customer delete: 0 customer update: -1
         const data = [status, debtId];
         await conn.execute(sql, data);
