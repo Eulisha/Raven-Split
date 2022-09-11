@@ -2,6 +2,8 @@ const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
+const { updateBalance } = require('../util/balance_handler');
+const { updateGraphEdge, getBestPath } = require('../util/graph_handler');
 
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}

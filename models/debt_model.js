@@ -1,10 +1,10 @@
 const pool = require('../config/mysql');
 
-const getDebtMain = async (group, pageSize, paging) => {
+const getDebtMain = async (group, pageSize, paging = 0) => {
     // const debtMainSql = 'SELECT id, date, title, total, lender FROM debt_main WHERE gid = ? ORDER BY date DESC, id ASC LIMIT ?, ?;'; //排序方式為日期+建立順序(id)
     // const [debtMainResult] = await pool.query(debtMainSql, [group, page, pageSize]);
     const debtMainSql = 'SELECT id, `date`, title, total, lender, split_method FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
-    const debtMainResult = await pool.query(debtMainSql, [group, pageSize, pageSize * paging]);
+    const debtMainResult = await pool.query(debtMainSql, [group, Number(pageSize), Number(pageSize) * paging]);
     return debtMainResult;
 };
 
@@ -25,6 +25,7 @@ const getDebtDetail = async (debtMainId, uid) => {
 };
 
 const createDebtMain = async (conn, debtMain) => {
+    console.log(debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1);
     try {
         const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
         const data = [debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
