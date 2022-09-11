@@ -26,8 +26,8 @@ const getDebtDetail = async (debtMainId, uid) => {
 
 const createDebtMain = async (conn, debtMain) => {
     try {
-        const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
-        const data = [debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
+        const sql = 'INSERT INTO debt_main SET gid = ?, debt_date = ?, title = ?, total = ?, lender = ?, status = ?;';
+        const data = [debtMain.gid, debtMain.debt_date, debtMain.title, debtMain.total, debtMain.lender, 1];
         const [result] = await conn.execute(sql, data);
         let debtMainId = result.insertId;
         return debtMainId;
@@ -40,8 +40,8 @@ const createDebtMain = async (conn, debtMain) => {
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     try {
         for (let debt of debtDetail) {
-            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?';
-            const data = [debtMainId, debt.borrower, debt.amount];
+            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?, split_method = ?';
+            const data = [debtMainId, debt.borrower, debt.amount, debt.split_method];
             await conn.execute(sql, data);
             return true;
         }
