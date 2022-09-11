@@ -33,6 +33,7 @@ const getDebtMain = async (req, res) => {
             }
             const debtMainRecord = {
                 id: debtMain.id,
+                gid: group,
                 date: debtMain.date,
                 title: debtMain.title,
                 total: debtMain.total,
