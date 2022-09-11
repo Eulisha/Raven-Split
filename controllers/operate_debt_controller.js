@@ -8,7 +8,6 @@ const { updateGraphEdge, getBestPath } = require('../util/graph_handler');
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
-    const data = {};
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -17,7 +16,6 @@ const postDebt = async (req, res) => {
     try {
         //1) MYSQL 新增raw data
         const debtMainId = await Debt.createDebtMain(conn, debtMain);
-        data.debtId = debtMainId;
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -46,7 +44,6 @@ const postDebt = async (req, res) => {
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
         }
-        data.graph = graph;
         //NEO4j更新best path graph
         console.log('debtsForUpdate:  ', debtsForUpdate);
         const updateGraph = Graph.updateBestPath(debtsForUpdate);
@@ -58,7 +55,7 @@ const postDebt = async (req, res) => {
         await conn.commit();
         await conn.release();
         session.close();
-        res.status(200).json(data);
+        res.status(200).json({ data: { debtId: debtMainId, graph: graph } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
