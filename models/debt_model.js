@@ -3,7 +3,7 @@ const pool = require('../config/mysql');
 const getDebtMain = async (group, pageSize, paging) => {
     // const debtMainSql = 'SELECT id, date, title, total, lender FROM debt_main WHERE gid = ? ORDER BY date DESC, id ASC LIMIT ?, ?;'; //排序方式為日期+建立順序(id)
     // const [debtMainResult] = await pool.query(debtMainSql, [group, page, pageSize]);
-    const debtMainSql = 'SELECT id, `date`, title, total, lender FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
+    const debtMainSql = 'SELECT id, `date`, title, total, lender, split_method FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
     const debtMainResult = await pool.query(debtMainSql, [group, pageSize, pageSize * paging]);
     return debtMainResult;
 };
@@ -11,13 +11,13 @@ const getDebtMain = async (group, pageSize, paging) => {
 const getDebtDetail = async (debtMainId, uid) => {
     if (uid) {
         //查該筆帳某個人的分帳
-        const sql = 'SELECT id, borrower, amount, split_method FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
+        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
         const data = [debtMainId, uid];
         const [result] = await pool.execute(sql, data);
         return result;
     } else {
         //查該筆帳的所有分帳
-        const sql = 'SELECT id, borrower, amount, split_method FROM debt_detail WHERE debt_main_id = ?';
+        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_main_id = ?';
         const data = [debtMainId];
         const [result] = await pool.execute(sql, data);
         return result;
@@ -26,8 +26,8 @@ const getDebtDetail = async (debtMainId, uid) => {
 
 const createDebtMain = async (conn, debtMain) => {
     try {
-        const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, status = ?;';
-        const data = [debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, 1];
+        const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
+        const data = [debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
         const [result] = await conn.execute(sql, data);
         let debtMainId = result.insertId;
         return debtMainId;
@@ -40,8 +40,8 @@ const createDebtMain = async (conn, debtMain) => {
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     try {
         for (let debt of debtDetail) {
-            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?, split_method = ?';
-            const data = [debtMainId, debt.borrower, debt.amount, debt.split_method];
+            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?';
+            const data = [debtMainId, debt.borrower, debt.amount];
             await conn.execute(sql, data);
             return true;
         }
