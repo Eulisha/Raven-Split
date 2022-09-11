@@ -1,17 +1,33 @@
 const pool = require('../config/mysql');
 
-const getDebtMain = async (group, pageSize, paging = 0) => {
-    // const debtMainSql = 'SELECT id, date, title, total, lender FROM debt_main WHERE gid = ? ORDER BY date DESC, id ASC LIMIT ?, ?;'; //排序方式為日期+建立順序(id)
-    // const [debtMainResult] = await pool.query(debtMainSql, [group, page, pageSize]);
-    const debtMainSql = 'SELECT id, `date`, title, total, lender, split_method FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
-    const debtMainResult = await pool.query(debtMainSql, [group, Number(pageSize), Number(pageSize) * paging]);
-    return debtMainResult;
+const getDebts = async (group, pageSize, paging = 0) => {
+    try {
+        const debtMainSql = 'SELECT id, `date`, title, total, lender, split_method FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
+        const debtMainResult = await pool.query(debtMainSql, [group, Number(pageSize), Number(pageSize) * paging]);
+        return debtMainResult;
+    } catch (err) {
+        console.log('ERROR AT getDebts: ', err);
+        return false;
+    }
+};
+
+//for update, delete internal back-end usage
+const getDebt = async (conn, debtId) => {
+    try {
+        const sql = 'SELECT gid, lender FROM debt_main WHERE id = ? AND status = 1 FOR UPDATE;';
+        const data = [debtId];
+        const [result] = await conn.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.log('ERROR AT getDebt: ', err);
+        return false;
+    }
 };
 
 const getDebtDetail = async (debtMainId, uid) => {
     if (uid) {
         //查該筆帳某個人的分帳
-        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_id = ? AND borrower = ?';
+        const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? d.borrower = ? AND m.status = 1';
         const data = [debtMainId, uid];
         const [result] = await pool.execute(sql, data);
         return result;
@@ -57,7 +73,6 @@ const getAllBalances = async (gid) => {
         const sql = 'SELECT * from debt_balance WHERE gid = ?';
         const data = [gid];
         const [result] = await pool.execute(sql, data);
-        console.log(result);
         return result;
     } catch (err) {
         console.log('ERROR AT getAllBalance: ', err);
@@ -151,7 +166,8 @@ const createBatchBalance = async (gid, memberCombo, conn) => {
 };
 
 module.exports = {
-    getDebtMain,
+    getDebts,
+    getDebt,
     getDebtDetail,
     createDebtMain,
     createDebtDetail,

@@ -4,14 +4,14 @@ const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
 const pageSize = process.env.PAGE_SIZE;
 
-const getDebtMain = async (req, res) => {
+const getDebts = async (req, res) => {
     const group = Number(req.query.group);
     const uid = Number(req.query.uid);
     const paging = Number(req.query.paging) || 0;
     const debtMainRecords = [];
     //撈所有該群組內的帳
     try {
-        const [debtMainResult] = await Debt.getDebtMain(group, pageSize, paging);
+        const [debtMainResult] = await Debt.getDebts(group, pageSize, paging);
         console.log('debtMain:', debtMainResult);
         //查借貸明細
         for (let debtMain of debtMainResult) {
@@ -82,4 +82,4 @@ const getSettle = async (req, res) => {
     });
     res.status(200).json({ data: graph });
 };
-module.exports = { getDebtMain, getDebtDetail, getDebtDetail, getMeberBalances, getSettle };
+module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle };
