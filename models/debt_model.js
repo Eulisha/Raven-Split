@@ -11,13 +11,13 @@ const getDebtMain = async (group, pageSize, paging = 0) => {
 const getDebtDetail = async (debtMainId, uid) => {
     if (uid) {
         //查該筆帳某個人的分帳
-        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_main_id = ? AND borrower = ?';
+        const sql = 'SELECT id, borrower, amount FROM debt_detail WHERE debt_id = ? AND borrower = ?';
         const data = [debtMainId, uid];
         const [result] = await pool.execute(sql, data);
         return result;
     } else {
         //查該筆帳的所有分帳
-        const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_main_id = m.id WHERE d.debt_main_id = ? AND m.status = 1';
+        const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
         const data = [debtMainId];
         const [result] = await pool.execute(sql, data);
         return result;
@@ -41,7 +41,7 @@ const createDebtMain = async (conn, debtMain) => {
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     try {
         for (let debt of debtDetail) {
-            const sql = 'INSERT INTO debt_detail SET debt_main_id = ?, borrower =?, amount = ?';
+            const sql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
             const data = [debtMainId, debt.borrower, debt.amount];
             await conn.execute(sql, data);
             return true;

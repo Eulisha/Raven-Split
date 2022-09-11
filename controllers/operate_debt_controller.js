@@ -73,7 +73,6 @@ const updateDebt = async (req, res) => {
     const debtDetailOld = req.body.debt_detail_old; //{ [ { borrower, amount} ] }
     const debtMainNew = req.body.debt_main_new;
     const debtDetailNew = req.body.debt_detail_new;
-    const data = {};
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -90,7 +89,6 @@ const updateDebt = async (req, res) => {
 
         //2) MYSQL create new raw data
         const debtMainId = await Debt.createDebtMain(conn, debtMainNew);
-        data.debtId = debtMainId;
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -126,7 +124,6 @@ const updateDebt = async (req, res) => {
         if (!debtsForUpdate) {
             throw new Error('Internal Server Error');
         }
-        data.graph = graph;
         //NEO4j更新best path graph
         console.log('debtsForUpdate:  ', debtsForUpdate);
         const updateGraph = Graph.updateBestPath(debtsForUpdate);
@@ -138,7 +135,7 @@ const updateDebt = async (req, res) => {
         await conn.commit();
         await conn.release();
         session.close();
-        res.status(200).json({ data: graph });
+        res.status(200).json({ data: { debtId: debtMainId, bestPath: graph } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
