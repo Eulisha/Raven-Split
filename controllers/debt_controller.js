@@ -32,7 +32,7 @@ const getDebtMain = async (req, res) => {
             }
             const debtMainRecord = {
                 id: debtMain.id,
-                date: debtMain.debt_date,
+                date: debtMain.date,
                 title: debtMain.title,
                 total: debtMain.total,
                 isOwned,
@@ -49,7 +49,7 @@ const getDebtMain = async (req, res) => {
 };
 
 const postDebt = async (req, res) => {
-    const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
+    const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
     const data = {};
 
