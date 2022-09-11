@@ -161,7 +161,7 @@ const postSettle = async (req, res) => {
 };
 const updateDebt = async (req, res) => {
     const debtId = req.body.debt_Id;
-    const debtMainOld = req.body.debt_main_old; //{gid, debt_date, title, total, lender, split_method}
+    const debtMainOld = req.body.debt_main_old; //{gid, date, title, total, lender, split_method}
     const debtDetailOld = req.body.debt_detail_old; //{ [ { borrower, amount} ] }
     const debtMainNew = req.body.debt_main_new;
     const debtDetailNew = req.body.debt_detail_new;
@@ -240,7 +240,7 @@ const updateDebt = async (req, res) => {
 };
 const deleteDebt = async (req, res) => {
     const debtId = req.body.debt_id;
-    const debtMain = req.body.debt_main; //{gid, debt_date, title, total, lender, split_method}
+    const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
 
     debtDetail.forEach((ele, ind) => {
