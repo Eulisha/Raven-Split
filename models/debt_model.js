@@ -3,7 +3,7 @@ const pool = require('../config/mysql');
 const getDebtMain = async (group, pageSize, paging) => {
     // const debtMainSql = 'SELECT id, date, title, total, lender FROM debt_main WHERE gid = ? ORDER BY date DESC, id ASC LIMIT ?, ?;'; //排序方式為日期+建立順序(id)
     // const [debtMainResult] = await pool.query(debtMainSql, [group, page, pageSize]);
-    const debtMainSql = 'SELECT id, date, title, total, lender FROM debt_main WHERE gid = ? LIMIT ? OFFSET ? AND status = 1;'; //排序方式為日期+建立順序(id)
+    const debtMainSql = 'SELECT id, `date`, title, total, lender FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
     const debtMainResult = await pool.query(debtMainSql, [group, pageSize, pageSize * paging]);
     return debtMainResult;
 };
