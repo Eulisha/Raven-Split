@@ -29,7 +29,7 @@ const createGroup = async (req, res) => {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     conn.commit();
-    res.status(200).json({ data: { groupId } });
+    res.status(200).json({ data: { gid } });
 };
 const createMember = async (req, res) => {
     const groupId = req.body.gid;
