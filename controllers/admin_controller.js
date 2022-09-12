@@ -12,7 +12,7 @@ const createGroup = async (req, res) => {
     await conn.beginTransaction();
 
     //MySql建立group
-    const groupResult = await Admin.createGroup(group_name, members, conn);
+    const groupResult = await Admin.createGroup(conn, group_name, members);
     if (!groupResult) {
         await conn.rollback();
         await conn.release();
@@ -22,7 +22,7 @@ const createGroup = async (req, res) => {
 
     console.log('to Neo:   ', groupId, members);
     //Neo4j建立節點
-    const graphResult = await Graph.createNodes(groupId, members, conn);
+    const graphResult = await Graph.createNodes(groupId, members);
     if (!graphResult) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
@@ -31,8 +31,8 @@ const createGroup = async (req, res) => {
 };
 const createMember = async (req, res) => {
     const groupId = req.body.gid;
-    const newMemberUid = req.body.uid;
-    const memberId = await Admin.createMember(groupId, newMemberUid);
+    const uid = req.body.uid;
+    const memberId = await Admin.createMember(groupId, uid, role);
     if (!memberId) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
