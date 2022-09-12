@@ -10,7 +10,7 @@ const createGroup = async (conn, group_name, members) => {
         const groupId = groupResult[0].insertId;
         //新增mebers
         for (let member of members) {
-            const memberSql = 'INSERT INTO members SET gid = ?, uid = ?, role = ?, status = ?';
+            const memberSql = 'INSERT INTO group_users SET gid = ?, uid = ?, role = ?, status = ?';
             const memberData = [groupId, member.uid, member.role, 1];
             const memberResult = await conn.execute(memberSql, memberData);
         }
@@ -22,7 +22,7 @@ const createGroup = async (conn, group_name, members) => {
 };
 const createMember = async (gid, uid, role) => {
     try {
-        const sql = 'INSERT INTO `members` SET gid = ?, uid = ?, role = ?, status = ?';
+        const sql = 'INSERT INTO group_users SET gid = ?, uid = ?, role = ?, status = ?';
         const data = [gid, uid, role, 1];
         const [result] = await pool.execute(sql, data);
         const memberId = result.insertId;
@@ -35,7 +35,7 @@ const createMember = async (gid, uid, role) => {
 const getUserGroups = async (uid) => {
     try {
         console.log('uid: ', uid);
-        const sql = 'SELECT gid, name FROM members LEFT JOIN `groups` ON `groups`.id = members.gid WHERE uid = ? AND `groups`.status = ?;';
+        const sql = 'SELECT gid, name FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND `groups`.status = ?;';
         const data = [uid, 1];
         const [result] = await pool.execute(sql, data);
         console.log(result);
@@ -46,16 +46,16 @@ const getUserGroups = async (uid) => {
     }
 };
 
-const getGroupMembers = async (gid) => {
+const getGroupUsers = async (gid) => {
     try {
         console.log('gid: ', gid);
-        const sql = 'SELECT uid, name FROM members LEFT JOIN `users` ON `users`.id = members.uid WHERE members.gid = ? AND `users`.status = ?;';
+        const sql = 'SELECT uid, name FROM group_users LEFT JOIN `users` ON `users`.id = group_users.uid WHERE group_users.gid = ? AND `users`.status = ?;';
         const data = [gid, 1];
         const [result] = await pool.execute(sql, data);
         // console.log(result);
         return result;
     } catch (err) {
-        console.log('ERROR AT getGroupMembers: ', err);
+        console.log('ERROR AT getGroupUsers: ', err);
         return null;
     }
 };
@@ -72,10 +72,21 @@ const updateGroup = async (gid, group_name) => {
         return null;
     }
 };
+const setSettling = async (gid, uid) => {
+    try {
+        const sql = 'UPDATE `group_users` SET is_settling = 1 WHERE gid = ? AND uid = ?';
+        const data = [gid, uid];
+        await pool.execute(sql, data);
+        return true;
+    } catch (err) {
+        console.log('ERROR AT setSettler: ', err);
+        return null;
+    }
+};
 const deleteMember = async (gid, uid) => {
     try {
         console.log(gid, uid);
-        const sql = 'UPDATE members SET status = 0 WHERE gid = ? AND uid = ?';
+        const sql = 'UPDATE group_users SET status = 0 WHERE gid = ? AND uid = ?';
         const data = [gid, uid];
         await pool.execute(sql, data);
         return true;
@@ -84,4 +95,4 @@ const deleteMember = async (gid, uid) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getUserGroups, getGroupMembers, updateGroup, deleteMember };
+module.exports = { createGroup, createMember, getUserGroups, getGroupUsers, updateGroup, setSettling, deleteMember };

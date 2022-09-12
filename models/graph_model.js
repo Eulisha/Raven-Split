@@ -118,6 +118,7 @@ const getGraph = async (gid) => {
         });
     } catch (err) {
         console.log('ERROR AT getGraph: ', err);
+        return null;
     } finally {
         session.close();
     }

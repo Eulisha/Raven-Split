@@ -2,6 +2,7 @@ const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
+const Admin = require('../models/admin_model');
 const pageSize = process.env.PAGE_SIZE;
 
 const getDebts = async (req, res) => {
@@ -70,16 +71,30 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
-    const groupId = req.params.id;
-    const result = await Graph.getGraph(groupId);
-    if (result.records.length !== 0) {
+    const gid = req.params.id;
+    const uid = req.query.uid; //FIXME:之後要改成從token解出來
+    try {
+        const resultGetGraph = await Graph.getGraph(gid);
+        if (!resultGetGraph) {
+            throw new Error('Internal Server Error');
+        }
+        if (!resultGetGraph === 0) {
+            return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
+        }
+        const graph = resultGetGraph.records.map((record) => {
+            let amount = record.get('amount').toNumber();
+            let borrower = record.get('borrower').toNumber();
+            let lender = record.get('lender').toNumber();
+            return { borrower, lender, amount };
+        });
+        const resultSetSetting = await Admin.setSettling(gid, uid);
+        if (!resultSetSetting) {
+            throw new Error('Internal Server Error');
+        }
+        await res.status(200).json({ data: graph });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ err });
     }
-    const graph = result.records.map((record) => {
-        let amount = record.get('amount').toNumber();
-        let borrower = record.get('borrower').toNumber();
-        let lender = record.get('lender').toNumber();
-        return { borrower, lender, amount };
-    });
-    res.status(200).json({ data: graph });
 };
 module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle };
