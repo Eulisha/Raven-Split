@@ -18,11 +18,13 @@ const createGroup = async (req, res) => {
         await conn.release();
         return res.status(500).json({ err: 'Internal Server Error' });
     }
-    const groupId = groupResult;
-
-    console.log('to Neo:   ', groupId, members);
+    const gid = groupResult;
+    const memberIds = members.map((member) => {
+        return member.uid;
+    });
+    console.log('to Neo:   ', gid, memberIds);
     //Neo4j建立節點
-    const graphResult = await Graph.createNodes(groupId, members);
+    const graphResult = await Graph.createNodes(gid, memberIds);
     if (!graphResult) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
