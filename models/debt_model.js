@@ -60,8 +60,8 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
             const sql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
             const data = [debtMainId, debt.borrower, debt.amount];
             await conn.execute(sql, data);
-            return true;
         }
+        return true;
     } catch (err) {
         console.log('ERROR AT createDebtDetail: ', err);
         return false;
