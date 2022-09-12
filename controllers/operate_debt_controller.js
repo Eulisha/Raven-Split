@@ -4,6 +4,7 @@ const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
 const { updateBalance } = require('../util/balance_handler');
 const { updateGraphEdge, getBestPath } = require('../util/graph_handler');
+const Mapping = require('../config/mapping');
 
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
@@ -15,7 +16,7 @@ const postDebt = async (req, res) => {
 
     try {
         //1) MYSQL 新增raw data
-        const debtMainId = await Debt.createDebtMain(conn, debtMain);
+        const debtMainId = await Debt.createDebt(conn, debtMain);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -85,7 +86,7 @@ const updateDebt = async (req, res) => {
         }
 
         //2) MYSQL create new raw data
-        const debtMainId = await Debt.createDebtMain(conn, debtMainNew);
+        const debtMainId = await Debt.createDebt(conn, debtMainNew);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -197,17 +198,35 @@ const deleteDebt = async (req, res) => {
     }
 };
 const postSettle = async (req, res) => {
-    if ((req.query.user1, req.query.user2)) {
-        await Debt.deleteGroupPairDebts(conn, gid, uid1, uid2);
-        await Debt.getBalance;
-        await Graph.deleteBestPath(txc, req.params.id);
-        await Graph.createBestPath(txc);
-    } else {
-        //群組全體結帳的狀況
-        await Debt.deleteGroupDebts(conn, gid);
-        await Debt.deleteDebtBalance(conn, req.params.id);
-        await Graph.deleteBestPath(txc, req.params.id);
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const session = driver.session();
+    const { gid, date, title } = req.body.settle_main;
+    //群組全體結帳的狀況
+    try {
+        const result = await Graph.getGraph(gid);
+        if (result.records.length === 0) {
+            return res.status(400).json({ err: 'no matched result' });
+        }
+        for (let record of result.records) {
+            let amount = record.get('amount').toNumber();
+            let borrower = record.get('borrower').toNumber();
+            let lender = record.get('lender').toNumber();
+            let debtMain = { gid, date, title, total: amount, lender, split_method: Mapping.SPLIT_METHOD.full_amount };
+            let debtId = await Debt.createDebt(conn, debtMain);
+            if (!debtId) {
+                throw new Error('Internal Server Error');
+            }
+            let debtDetail = [{ borrower, amount }];
+            await Debt.createDebtDetail(conn, debtId, debtDetail);
+        }
+        await Debt.deleteDebtBalance(conn, gid);
+        await Graph.deleteBestPath(session, gid);
+        res.status(200).json({ data: null });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ err });
     }
 };
 
-module.exports = { postDebt, updateDebt, deleteDebt };
+module.exports = { postDebt, updateDebt, deleteDebt, postSettle };

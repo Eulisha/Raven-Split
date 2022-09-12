@@ -94,8 +94,8 @@ const updateBestPath = async (debtsForUpdate) => {
 };
 
 //刪除最佳解
-const deleteBestPath = async (txc, groupId) => {
-    const result = await txc.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: neo4j.int(groupId) });
+const deleteBestPath = async (session, groupId) => {
+    const result = await session.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: neo4j.int(groupId) });
     console.log(result.summary.updateStatistics);
     return true;
 };

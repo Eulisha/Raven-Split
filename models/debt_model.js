@@ -40,7 +40,7 @@ const getDebtDetail = async (debtMainId, uid) => {
     }
 };
 
-const createDebtMain = async (conn, debtMain) => {
+const createDebt = async (conn, debtMain) => {
     console.log(debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1);
     try {
         const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
@@ -49,7 +49,7 @@ const createDebtMain = async (conn, debtMain) => {
         let debtMainId = result.insertId;
         return debtMainId;
     } catch (err) {
-        console.log('ERROR AT createDebtMain: ', err);
+        console.log('ERROR AT createDebt: ', err);
         return false;
     }
 };
@@ -113,6 +113,7 @@ const updateBalance = async (conn, id, borrower, lender, newBalance) => {
     }
 };
 const deleteGroupDebts = async (conn, gid) => {
+    // WARNING: THIS MODEL IS NOT USED AFTER CHANGING SETTLE FLOW LOGIC
     try {
         console.log('groupId:', gid);
         const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
@@ -169,7 +170,7 @@ module.exports = {
     getDebts,
     getDebt,
     getDebtDetail,
-    createDebtMain,
+    createDebt,
     createDebtDetail,
     getAllBalances,
     getBalance,
