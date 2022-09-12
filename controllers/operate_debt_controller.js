@@ -223,8 +223,12 @@ const postSettle = async (req, res) => {
         await Debt.deleteDebtBalance(conn, gid);
         await Graph.deleteBestPath(session, gid);
         res.status(200).json({ data: null });
+        await conn.commit();
+        await conn.release();
+        session.close();
     } catch (err) {
         console.log(err);
+        await conn.rollback();
         res.status(500).json({ err });
     }
 };
