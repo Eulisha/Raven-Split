@@ -3,41 +3,59 @@ const pool = require('../config/mysql');
 
 const updateBalance = async (conn, debtMain, debtDetail) => {
     try {
-        console.log(debtMain, debtDetail);
-        //拉出pair本來的借貸並更新
+        console.log('@updatebalance@ main, detail: ', debtMain, debtDetail);
+        // 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
-            // 原本債務關係和目前一樣 borrower-own->lender
+            //查正向 borrower-own->lender
             const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
                 throw new Error('Internal Server Error');
             }
             if (getBalanceResult.length !== 0) {
+                // console.log('balance1:');
+                // 原本債務關係和目前一樣 borrower-own->lender
                 let balanceId = getBalanceResult[0].id;
                 let originalDebt = getBalanceResult[0].amount;
                 let newBalance = originalDebt + debt.amount; //add more debt
-                const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, newBalance);
-
-                if (!result) {
-                    throw new Error('Internal Server Error');
+                // console.log('balanceId:', balanceId, 'originalDebt: ', originalDebt, 'newBalance: ', newBalance);
+                if (newBalance >= 0) {
+                    // console.log('>0');
+                    //  維持 borrower-own->lender
+                    const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, newBalance);
+                    if (!result) {
+                        throw new Error('Internal Server Error');
+                    }
+                } else {
+                    // console.log('<0');
+                    // 改為 borrower <-own-lender
+                    const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, -newBalance);
+                    if (!result) {
+                        throw new Error('Internal Server Error');
+                    }
                 }
             } else {
-                //原本債務關係和目前相反 borrower <-own-lender
+                // 查反向 borrower <-own-lender
                 const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debtMain.lender, debt.borrower);
                 if (!getBalanceResult) {
                     throw new Error('Internal Server Error');
                 }
                 if (getBalanceResult.length !== 0) {
+                    // console.log('balance2:');
+                    // 原本債務關係和目前相反 borrower <-own-lender
                     let balanceId = getBalanceResult[0].id;
                     let originalDebt = getBalanceResult[0].amount;
                     let newBalance = originalDebt - debt.amount; //pay back
+                    // console.log('balanceId:', balanceId, 'originalDebt: ', originalDebt, 'newBalance: ', newBalance);
                     if (newBalance > 0) {
-                        //  維持borrower <-own-lender
+                        // console.log('>0');
+                        //  維持 borrower <-own-lender
                         const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, newBalance);
                         if (!result) {
                             throw new Error('Internal Server Error');
                         }
                     } else {
-                        // 改為borrower-own->lender
+                        // console.log('<0');
+                        // 改為 borrower-own->lender
                         const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, -newBalance);
                         if (!result) {
                             throw new Error('Internal Server Error');

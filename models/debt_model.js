@@ -89,7 +89,7 @@ const getAllBalances = async (gid) => {
 };
 const getBalance = async (conn, gid, borrower, lender) => {
     try {
-        console.log(gid, lender, borrower);
+        console.log('data for get balance: ', 'gid ', gid, 'lender ', lender, 'borrower', borrower);
         const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
         const data = [gid, lender, borrower];
         const [result] = await conn.execute(sql, data);
@@ -111,6 +111,7 @@ const createBalance = async (conn, gid, borrower, lender, debt) => {
     }
 };
 const updateBalance = async (conn, id, borrower, lender, newBalance) => {
+    console.log('data for update balance model: ', 'id ', id, 'borrower ', borrower, 'lender ', lender, 'newbalance ', newBalance);
     try {
         const sql = 'UPDATE debt_balance SET borrower = ?, lender = ?, amount=? WHERE id = ?';
         const data = [borrower, lender, newBalance, id];
@@ -124,7 +125,7 @@ const updateBalance = async (conn, id, borrower, lender, newBalance) => {
 const deleteGroupDebts = async (conn, gid) => {
     // WARNING: THIS MODEL IS NOT USED AFTER CHANGING SETTLE FLOW LOGIC
     try {
-        console.log('groupId:', gid);
+        console.log('data for delet group model: id ', gid);
         const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
         const data = [gid];
         await conn.execute(sql, data);
