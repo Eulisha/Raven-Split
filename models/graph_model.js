@@ -55,7 +55,8 @@ const updateEdge = async (session, gid, newMap) => {
             let map = newMap;
             console.log('i am map ', map, gid);
             const result = await txc.run(
-                'MATCH (g:group{name:$gid}) WITH g UNWIND $debts AS debt MATCH (g)<-[:member_of]-(borrower:person)-[r:own]->(lender:person)-[:member_of]->(g) WHERE lender.name = debt.lender AND borrower.name = debt.borrower SET r.amount = debt.amount RETURN r',
+                'UNWIND $debts AS debt MATCH (g:group{name:$gid})<-[:member_of]-(b:person) WHERE b.name = debt.borrower MATCH (g:group{name:$gid})<-[:member_of]-(l:person) WHERE l.name = debt.lender WITH b, l MERGE (b)-[r:own]->(l) SET r.amount = debt.amount return b, l, r',
+                // 'MATCH (g:group{name:$gid}) WITH g UNWIND $debts AS debt MATCH (g)<-[:member_of]-(borrower:person)-[r:own]->(lender:person)-[:member_of]->(g) WHERE lender.name = debt.lender AND borrower.name = debt.borrower SET r.amount = debt.amount RETURN r',
                 // 'UNWIND $debts AS debt MATCH (lender:person)-[:member_of]->(g:group{name:$gid}) WHERE lender.name = debt.lender with lender, g, debt MATCH (borrower:person)-[:member_of]->(g) WHERE borrower.name = debt.borrower WITH lender, borrower, debt MATCH (borrower)-[r:own]->(lender) SET r.amount = debt.amount RETURN r',
                 // 'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender,g UNWIND $borrowers AS b MATCH (m:person)-[:member_of]->(g) WHERE m.name = b.name MERGE (m)-[r:own]->(lender) SET r.amount = r.amount + b.amount'
                 {
@@ -63,7 +64,7 @@ const updateEdge = async (session, gid, newMap) => {
                     debts: map, //已做過neo4j.int處理
                 }
             );
-            // console.log('updateedge: ', result.records);
+            console.log('updateedge: ', result.records);
             console.log('updateedge: ', result.summary.updateStatistics);
             return true;
         });
@@ -72,6 +73,26 @@ const updateEdge = async (session, gid, newMap) => {
         return null;
     }
 };
+
+//刪除路徑
+const deletePath = async (gid, borrower, lender) => {
+    try {
+        const session = driver.session();
+        return await session.writeTransaction(async (txc) => {
+            const result = await txc.run(
+                'MATCH (g:group{name:$gid}) WITH g MATCH (n:person)-[:member_of]->(g) WHERE n.name = borrower MATCH (m:person)-[:member_of]->(g) WHERE m.name = lender WITH n, m MATCH (n)-[r:own]->(m) DELETE r RETURN r',
+                // 'MATCH (g:group{name:$gid}) WITH g MATCH (g)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g) WHERE n.name = $borrower AND m.name = lender DELETE r RETURN r',
+                { gid, borrower, lender }
+            );
+            console.log('deletePath: ', result.records);
+            console.log('deletePath: ', result.summary.updateStatistics);
+        });
+    } catch (err) {
+        console.log('ERROR AT deletePath: ', err);
+        return false;
+    }
+};
+
 //更新最佳解
 const updateBestPath = async (debtsForUpdate) => {
     try {
@@ -84,6 +105,7 @@ const updateBestPath = async (debtsForUpdate) => {
                 { debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
             );
             console.log('updatebestpath: ', result.summary.updateStatistics);
+            console.log('updatebestpath: ', result.records);
             // await session.close();
             return true;
         });
@@ -99,6 +121,7 @@ const deleteBestPath = async (session, groupId) => {
     console.log(result.summary.updateStatistics);
     return true;
 };
+
 //TODO:重建最佳解
 const createBestPath = async () => {
     '';
@@ -193,4 +216,4 @@ const allPaths = async (session, gid, currentSource, sinkNode) => {
     }
 };
 
-module.exports = { allNodes, sourceEdge, allPaths, createNodes, getCurrEdge, updateEdge, updateBestPath, deleteBestPath, getGraph };
+module.exports = { allNodes, sourceEdge, allPaths, createNodes, getCurrEdge, updateEdge, updateBestPath, deleteBestPath, deletePath, getGraph };

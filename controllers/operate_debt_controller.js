@@ -32,31 +32,27 @@ const postDebt = async (req, res) => {
         }
         console.log('DB到這裡都完成了');
 
-        //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
-        const updateGraphEdgeesult = await updateGraphEdge(session, debtMain, debtDetail);
-        if (!updateGraphEdgeesult) {
-            throw new Error('Internal Server Error');
-        }
-        console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
-        //TODO:處理沒有MATCH的狀況（不會跳error）
+        return await session.writeTransaction(async (txc) => {
+            //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
+            const updateGraphEdgeesult = await updateGraphEdge(session, debtMain, debtDetail);
+            if (!updateGraphEdgeesult) {
+                throw new Error('Internal Server Error');
+            }
+            console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
+            //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        //3)NEO4j取出所有路徑，並計算出最佳解
-        const [graph, debtsForUpdate] = await getBestPath(session, debtMain.gid);
-        if (!debtsForUpdate) {
-            throw new Error('Internal Server Error');
-        }
-        //NEO4j更新best path graph
-        console.log('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(debtsForUpdate);
-        if (!updateGraph) {
-            throw new Error('Internal Server Error');
-        }
-
-        //全部成功，MySQL做commit
-        await conn.commit();
-        await conn.release();
-        session.close();
-        res.status(200).json({ data: { debtId: debtMainId, graph: graph } });
+            //3)NEO4j取出所有路徑，並計算出最佳解
+            const [graph, debtsForUpdate] = await getBestPath(session, debtMain.gid);
+            if (!debtsForUpdate) {
+                throw new Error('Internal Server Error');
+            }
+            //NEO4j更新best path graph
+            console.log('debtsForUpdate:  ', debtsForUpdate);
+            const updateGraph = Graph.updateBestPath(debtsForUpdate);
+            if (!updateGraph) {
+                throw new Error('Internal Server Error');
+            }
+        });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();

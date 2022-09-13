@@ -1,9 +1,10 @@
 const Graph = require('../models/graph_model');
 const { neo4j, driver } = require('../config/neo4j');
 
-const updateGraphEdge = async (session, debtMain, debtDetail) => {
+const updateGraphEdge = async (txc, debtMain, debtDetail) => {
     console.log('@ function updateGraphEdge @');
     try {
+        console.log('debtDetail', debtDetail);
         let map = [];
         for (let debt of debtDetail) {
             // console.log('debt:', debt);
@@ -25,11 +26,10 @@ const updateGraphEdge = async (session, debtMain, debtDetail) => {
         }
 
         //先查出原本的債務線
-        const getEdgeResult = await Graph.getCurrEdge(session, neo4j.int(debtMain.gid), neo4j.int(debtMain.lender), map);
-        //TODO:加上這次的帳
+        const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(debtMain.gid), neo4j.int(debtMain.lender), map);
         let newMap = [];
         getEdgeResult.records.forEach((oldDebt, ind) => {
-            console.log(oldDebt);
+            console.log('oldDebt: ', oldDebt);
             let start = oldDebt.get('start').toNumber();
             let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
@@ -51,12 +51,13 @@ const updateGraphEdge = async (session, debtMain, debtDetail) => {
                     newBalance = -newBalance;
                     console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
+                    Graph.deletePath(txc, neo4j.int(debtMain.gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
             }
         });
         //更新線
         // console.log('for Neo newMap:   ', newMap);
-        const updateGraphEdgeesult = await Graph.updateEdge(session, neo4j.int(debtMain.gid), newMap);
+        const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(debtMain.gid), newMap);
         // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
         return updateGraphEdgeesult;
     } catch (err) {
