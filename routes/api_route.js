@@ -16,7 +16,7 @@ apiRoute.post('/debt', postDebt);
 apiRoute.post('/settle', postSettle);
 apiRoute.put('/group', updateGroup);
 apiRoute.put('/debt', updateDebt);
-apiRoute.delete('/debt', deleteDebt);
+apiRoute.delete('/debt/:id', deleteDebt);
 apiRoute.delete('/pair-debts');
 apiRoute.delete('/group-debts/:id');
 apiRoute.delete('/member/:gid/:uid', deleteMember);

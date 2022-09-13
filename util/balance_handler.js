@@ -3,6 +3,7 @@ const pool = require('../config/mysql');
 
 const updateBalance = async (conn, debtMain, debtDetail) => {
     try {
+        console.log(debtMain, debtDetail);
         //拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
             // 原本債務關係和目前一樣 borrower-own->lender

@@ -40,6 +40,14 @@ const getDebtDetail = async (debtMainId, uid) => {
     }
 };
 
+const getDebtDetailTrx = async (conn, debtMainId) => {
+    //查該筆帳的所有分帳
+    const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
+    const data = [debtMainId];
+    const [result] = await conn.execute(sql, data);
+    return result;
+};
+
 const createDebt = async (conn, debtMain) => {
     console.log(debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1);
     try {
@@ -81,6 +89,7 @@ const getAllBalances = async (gid) => {
 };
 const getBalance = async (conn, gid, borrower, lender) => {
     try {
+        console.log(gid, lender, borrower);
         const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
         const data = [gid, lender, borrower];
         const [result] = await conn.execute(sql, data);
@@ -170,6 +179,7 @@ module.exports = {
     getDebts,
     getDebt,
     getDebtDetail,
+    getDebtDetailTrx,
     createDebt,
     createDebtDetail,
     getAllBalances,
