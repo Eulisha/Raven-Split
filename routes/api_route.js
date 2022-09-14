@@ -5,7 +5,7 @@ const { getDebts, getDebtDetail, getMeberBalances, getSettle } = require('../con
 const apiRoute = express.Router();
 
 apiRoute.get('/user-groups/:id', getUserGroups);
-apiRoute.get('/group-members/:id', getGroupUsers);
+apiRoute.get('/group-users/:id', getGroupUsers);
 apiRoute.get('/debts', getDebts);
 apiRoute.get('/debts-balances/:id', getMeberBalances);
 apiRoute.get('/debt-detail/:id', getDebtDetail);

@@ -5,6 +5,7 @@ const port = PORT;
 // Express Initialization
 const express = require('express');
 const apiRoute = require('./routes/api_route');
+const userRoute = require('./routes/user_route');
 const app = express();
 const cors = require('cors');
 
@@ -14,6 +15,7 @@ app.use(cors());
 //Routes
 app.use('/', express.static('public'));
 app.use('/api', apiRoute);
+app.use('/user', userRoute);
 
 app.get('/', (req, res) => {
     res.send('ok');
