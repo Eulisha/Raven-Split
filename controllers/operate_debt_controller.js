@@ -5,6 +5,7 @@ const { neo4j, driver } = require('../config/neo4j');
 const { updateBalance } = require('../util/balance_handler');
 const { updateGraphEdge, getBestPath } = require('../util/graph_handler');
 const Mapping = require('../config/mapping');
+const { updated_balance_graph } = require('../util/bundle_getter');
 
 const postDebt = async (req, res) => {
     const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
@@ -59,7 +60,11 @@ const postDebt = async (req, res) => {
         await conn.commit();
         await conn.release();
         session.close();
-        res.status(200).json({ data: { debtId: debtMainId, graph: graph } });
+
+        // search update result from dbs just for refernce
+        const updateResult = await updated_balance_graph(debtMain.gid);
+
+        res.status(200).json({ data: { debtId: debtMainId, updateResult } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
@@ -115,28 +120,32 @@ const updateDebt = async (req, res) => {
 
         //4)Neo4j update edge
         console.log('start neo4j');
-        const oldEdgeesult = await updateGraphEdge(session, debtMainOld, debtDetailOld);
-        const newEdgeesult = await updateGraphEdge(session, debtMainNew, debtDetailNew);
-        console.log('Neo4j更新線的結果：', oldEdgeesult);
-        console.log('Neo4j更新線的結果：', newEdgeesult);
+        await session.writeTransaction(async (txc) => {
+            const oldEdgeesult = await updateGraphEdge(txc, debtMainOld, debtDetailOld);
+            const newEdgeesult = await updateGraphEdge(txc, debtMainNew, debtDetailNew);
+            console.log('Neo4j更新線的結果：', oldEdgeesult);
+            console.log('Neo4j更新線的結果：', newEdgeesult);
 
-        //5)算最佳解
-        const [graph, debtsForUpdate] = await getBestPath(session, debtMainNew.gid);
-        if (!debtsForUpdate) {
-            throw new Error('Internal Server Error');
-        }
-        //NEO4j更新best path graph
-        console.log('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(debtsForUpdate);
-        if (!updateGraph) {
-            throw new Error('Internal Server Error');
-        }
-
+            //5)算最佳解
+            const [graph, debtsForUpdate] = await getBestPath(txc, debtMainNew.gid);
+            if (!debtsForUpdate) {
+                throw new Error('Internal Server Error');
+            }
+            //NEO4j更新best path graph
+            console.log('debtsForUpdate:  ', debtsForUpdate);
+            const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
+            if (!updateGraph) {
+                throw new Error('Internal Server Error');
+            }
+        });
         //全部成功，MySQL做commit
         await conn.commit();
         await conn.release();
         session.close();
-        res.status(200).json({ data: { debtId: debtMainId, bestPath: graph } });
+
+        // search update result from dbs just for refernce
+        const updateResult = updated_balance_graph(debtMainOld.gid);
+        res.status(200).json({ data: { debtId: debtMainId, updateResult } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
@@ -180,7 +189,6 @@ const deleteDebt = async (req, res) => {
             throw new Error('Internal Server Error');
         }
 
-        let graph;
         let debtsForUpdate;
         await session.writeTransaction(async (txc) => {
             // 3-2) Neo4j update edge
@@ -209,9 +217,9 @@ const deleteDebt = async (req, res) => {
         await conn.release();
         session.close();
 
-        // search update result from dbs
-        const balance = await Debt.getAllBalances(debtMain[0].gid);
-        res.status(200).json({ data: { debtId, balance, graph } });
+        // search update result from dbs just for refernce
+        const updateResult = await updated_balance_graph(debtMain[0].gid);
+        res.status(200).json({ data: { debtId, updateResult } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();

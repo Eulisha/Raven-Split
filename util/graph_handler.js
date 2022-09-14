@@ -37,12 +37,21 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
             if (start === debtDetail[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let newBalance = originalDebt + debtDetail[ind].amount;
-                console.log('balance1: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
-                newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
+                if (newBalance >= 0) {
+                    // 維持borrower <-own-lender
+                    console.log('balance1: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
+                    newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
+                } else {
+                    // 改為borrower-own->lender
+                    newBalance = -newBalance;
+                    console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
+                    newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
+                    Graph.deletePath(txc, neo4j.int(debtMain.gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
+                }
             } else {
                 // 原本債務關係和目前相反 borrower<-own-lender
                 let newBalance = originalDebt - debtDetail[ind].amount;
-                if (newBalance > 0) {
+                if (newBalance >= 0) {
                     // 維持borrower <-own-lender
                     console.log('balance2: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
@@ -65,7 +74,7 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
         return false;
     }
 };
-const getBestPath = async (session, gid) => {
+const getBestPath = async (txc, gid) => {
     try {
         console.time('all');
         const graph = {};
@@ -79,7 +88,7 @@ const getBestPath = async (session, gid) => {
             // 1-1) 查詢圖中所有node
             console.time('db1');
             console.log('TO Neo allNode:  ', neo4j.int(gid));
-            const allNodesResult = await Graph.allNodes(session, neo4j.int(gid));
+            const allNodesResult = await Graph.allNodes(txc, neo4j.int(gid));
             console.timeEnd('db1');
             allNodesResult.records.forEach((element) => {
                 let name = element.get('name').toNumber();
@@ -92,7 +101,7 @@ const getBestPath = async (session, gid) => {
             for (let source of allNodeList) {
                 console.time('db2');
                 console.log('To Neo sourceEdge:  ', neo4j.int(gid), neo4j.int(source));
-                const sourceEdgeResult = await Graph.sourceEdge(session, neo4j.int(gid), neo4j.int(source));
+                const sourceEdgeResult = await Graph.sourceEdge(txc, neo4j.int(gid), neo4j.int(source));
                 console.timeEnd('db2');
                 pathsStructure[source] = { sinksSummary: { sinks: [], qty: 0 }, sinks: {} };
                 pathsStructure[source].sinksSummary.qty = sourceEdgeResult.records.length; //紀錄qty
@@ -117,7 +126,7 @@ const getBestPath = async (session, gid) => {
             console.time('db3');
             // 1-3) 查所有的路徑
             console.log('To Neo allPath:  ', neo4j.int(gid), neo4j.int(currentSource));
-            const pathsResult = await Graph.allPaths(session, neo4j.int(gid), neo4j.int(currentSource));
+            const pathsResult = await Graph.allPaths(txc, neo4j.int(gid), neo4j.int(currentSource));
             // console.log(pathsResult);
             console.timeEnd('db3');
             //第二層：iterate paths in source
