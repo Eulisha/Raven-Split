@@ -2,7 +2,7 @@ const pool = require('../config/mysql');
 
 const checkUserExist = async (email) => {
     try {
-        const sql = `SELECT id, password FROM users WHERE email = ?`;
+        const sql = `SELECT id FROM users WHERE email = ? AND status = 1`;
         const data = [email];
         const [result] = await pool.execute(sql, data);
         return result;
@@ -23,4 +23,15 @@ const signUp = async (email, password, name, cellphone, provider) => {
         return err;
     }
 };
-module.exports = { checkUserExist, signUp };
+const signIn = async (email) => {
+    try {
+        const sql = `SELECT * FROM users WHERE email = ? AND status = 1`;
+        const data = [email];
+        const [result] = await pool.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.log(err);
+        return err;
+    }
+};
+module.exports = { checkUserExist, signUp, signIn };

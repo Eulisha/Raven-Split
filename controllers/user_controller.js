@@ -47,25 +47,24 @@ const signUp = async (req, res) => {
     });
 };
 
-////SIGN IN////
 const signIn = async (req, res) => {
     console.log('sign-in body :', req.body);
 
-    let user = {};
+    const { email, password, provider } = req.body;
+
     //確認email是否存在
-    const checkExitResult = await User.checkUserExist(email);
-    if (!checkExitResult) {
+    const [signInResult] = await User.signIn(email);
+
+    if (!signInResult) {
         return res.status(500).json({ err });
     }
-    if (userId.length === 0) {
+    if (signInResult === 0) {
         return res.status(403).json({ msg: 'email not existed.' });
     }
 
-    [id, email, password];
     // hash密碼來驗證
-    const hash = await bcrypt.hash(password, 10);
     try {
-        const hash = await bcrypt.compare(req.body.password, userInfo[0].password);
+        const hash = await bcrypt.compare(password, signInResult.password);
         if (!hash) {
             return res.status(403).json({ msg: 'Password incorrect.' });
         }
@@ -74,13 +73,12 @@ const signIn = async (req, res) => {
     }
 
     //調整回傳API格式
-    user = userInfo[0];
-    user.provider = req.body.provider;
-    delete user.password;
-    console.log(user);
+    // user.provider = req.body.provider;
+    delete signInResult.password;
+    console.log(signInResult);
 
     // 生成token
-    const token = jwt.sign({ id: user.id }, jwtSecret, {
+    const token = jwt.sign({ email }, jwtSecret, {
         expiresIn: jwtExpire,
     });
     // 拋回前端
@@ -88,7 +86,7 @@ const signIn = async (req, res) => {
         data: {
             access_token: token,
             access_expired: jwtExpire,
-            user: user,
+            user: signInResult,
         },
     });
 };
