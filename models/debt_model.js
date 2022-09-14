@@ -64,12 +64,14 @@ const createDebt = async (conn, debtMain) => {
 
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     try {
+        const detailIds = [];
         for (let debt of debtDetail) {
             const sql = 'INSERT INTO debt_detail SET debt_id = ?, borrower =?, amount = ?';
             const data = [debtMainId, debt.borrower, debt.amount];
-            await conn.execute(sql, data);
+            const [result] = await conn.execute(sql, data);
+            detailIds.push(result.insertId);
         }
-        return true;
+        return detailIds;
     } catch (err) {
         console.log('ERROR AT createDebtDetail: ', err);
         return false;

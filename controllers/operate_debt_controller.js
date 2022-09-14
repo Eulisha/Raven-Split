@@ -22,8 +22,8 @@ const postDebt = async (req, res) => {
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
-        const debtDetailResult = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
-        if (!debtDetailResult) {
+        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
+        if (!detailIds) {
             throw new Error('Internal Server Error');
         }
 
@@ -33,8 +33,7 @@ const postDebt = async (req, res) => {
             throw new Error('Internal Server Error');
         }
         console.log('DB到這裡都完成了');
-        let graph;
-        let debtsForUpdate;
+
         await session.writeTransaction(async (txc) => {
             //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
             const updateGraphEdgeesult = await updateGraphEdge(txc, debtMain, debtDetail);
@@ -45,7 +44,7 @@ const postDebt = async (req, res) => {
             //TODO:處理沒有MATCH的狀況（不會跳error）
 
             //3)NEO4j取出所有路徑，並計算出最佳解
-            [graph, debtsForUpdate] = await getBestPath(txc, debtMain.gid);
+            const [graph, debtsForUpdate] = await getBestPath(txc, debtMain.gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
@@ -64,7 +63,7 @@ const postDebt = async (req, res) => {
         // search update result from dbs just for refernce
         const updateResult = await updated_balance_graph(debtMain.gid);
 
-        res.status(200).json({ data: { debtId: debtMainId, updateResult } });
+        res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
@@ -98,8 +97,8 @@ const updateDebt = async (req, res) => {
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
-        const debtDetailResult = await Debt.createDebtDetail(conn, debtMainId, debtDetailNew);
-        if (!debtDetailResult) {
+        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetailNew);
+        if (!detailIds) {
             throw new Error('Internal Server Error');
         }
         console.log(debtDetailOld);
@@ -145,7 +144,7 @@ const updateDebt = async (req, res) => {
 
         // search update result from dbs just for refernce
         const updateResult = updated_balance_graph(debtMainOld.gid);
-        res.status(200).json({ data: { debtId: debtMainId, updateResult } });
+        res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
         console.log('error: ', err);
         await conn.rollback();
