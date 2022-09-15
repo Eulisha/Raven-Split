@@ -4,8 +4,12 @@ const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
 const Admin = require('../models/admin_model');
 const pageSize = process.env.PAGE_SIZE;
+const Mapping = require('../config/mapping');
 
 const getDebts = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     const group = Number(req.query.group);
     const uid = Number(req.query.uid);
     const paging = Number(req.query.paging) || 0;
@@ -51,6 +55,9 @@ const getDebts = async (req, res) => {
     }
 };
 const getDebtDetail = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     try {
         const debtMainId = req.params.id;
         const result = await Debt.getDebtDetail(debtMainId);
@@ -61,6 +68,9 @@ const getDebtDetail = async (req, res) => {
     }
 };
 const getMeberBalances = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     try {
         const gid = req.params.id;
         const result = await Debt.getAllBalances(gid);
@@ -71,8 +81,11 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     const gid = req.params.id;
-    const uid = req.query.uid; //FIXME:之後要改成從token解出來
+    const uid = req.user.id;
     try {
         const resultGetGraph = await Graph.getGraph(gid);
         if (!resultGetGraph) {

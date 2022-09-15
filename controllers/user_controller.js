@@ -10,9 +10,9 @@ const signUp = async (req, res) => {
     const { email, password, name, cellphone, provider } = req.body;
 
     //確認email是否存在
-    const checkExitResult = await User.checkUserExist(email);
+    const checkExitResult = await User.checkExit(email);
     if (!checkExitResult) {
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: checkExitResult });
     }
     if (checkExitResult.length !== 0) {
         return res.status(403).json({ err: 'email already existed.' });
@@ -26,23 +26,25 @@ const signUp = async (req, res) => {
     console.log(userId);
     // 生成token
 
-    const token = jwt.sign({ email }, jwtSecret, {
+    const user = {
+        id: userId,
+        email,
+        name,
+        cellphone,
+        picture: null,
+        provider,
+    };
+    const token = jwt.sign(user, jwtSecret, {
         expiresIn: jwtExpire,
     });
 
     // 拋回前端
     return res.json({
         data: {
-            access_token: token,
-            access_expired: jwtExpire,
-            user: {
-                uid: userId,
-                name,
-                email,
-                cellphone,
-                provider,
-                picture: '',
-            },
+            accessToken: token,
+            accessExpired: jwtExpire,
+            user,
+            userGroups: [],
         },
     });
 };
@@ -72,46 +74,49 @@ const signIn = async (req, res) => {
         return res.status(500).json({ msg: 'hash fail.' });
     }
 
-    //調整回傳API格式
-    // user.provider = req.body.provider;
-    delete signInResult.password;
-    console.log(signInResult);
+    // get user-groups and roles
+    const userGroups = await User.getUserGroups(signInResult.id);
+    if (!userGroups) {
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+    //調整格式
+    const user = {
+        id: signInResult.id,
+        email: signInResult.email,
+        name: signInResult.name,
+        cellphone: signInResult.cellphone,
+        picture: signInResult.picture,
+        provider: signInResult.provider,
+    };
 
     // 生成token
-    const token = jwt.sign({ email }, jwtSecret, {
+    const token = jwt.sign(user, jwtSecret, {
         expiresIn: jwtExpire,
     });
+
     // 拋回前端
     return res.json({
         data: {
-            access_token: token,
-            access_expired: jwtExpire,
-            user: signInResult,
+            accessToken: token,
+            accessExpired: jwtExpire,
+            user,
+            userGroups,
         },
     });
 };
 
-////User Profile API////
-const proileSearch = async (req, res) => {
-    console.log('@profileSearch');
-    if (req.authCode === 401 || req.authCode === 403) {
-        return res.status(req.authCode).json(req.authResult);
+const getUserProfile = async (req, res) => {
+    //user info 從 authenticate 解 JWT token 得出
+    res.status(200).json({ data: req.user });
+};
+const getUserGroups = async (req, res) => {
+    let uid = req.params.id;
+    const groups = await User.getUserGroups(uid);
+    if (!groups) {
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
-    //<sql>:查詢使用者資料
-    try {
-        let sql = 'SELECT * FROM user WHERE id = ?';
-        console.log(req.decode);
-        const [userInfo] = await promisePool.execute(sql, [req.decode.id]);
-
-        //調整格式拋回前端
-        delete userInfo[0].id;
-        delete userInfo[0].password;
-        let data = {};
-        data = userInfo[0];
-        return data;
-    } catch (err) {
-        // return res.status(500).json({ msg: err });
-    }
+    res.status(200).json({ data: groups });
 };
 
-module.exports = { signUp, signIn, proileSearch };
+module.exports = { signUp, signIn, getUserProfile, getUserGroups };

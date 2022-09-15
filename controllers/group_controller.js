@@ -1,6 +1,7 @@
 const Admin = require('../models/admin_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
+const { USER_ROLE } = require('../config/mapping_reverse');
 
 const createGroup = async (req, res) => {
     const group_name = req.body.group_name;
@@ -32,6 +33,9 @@ const createGroup = async (req, res) => {
     res.status(200).json({ data: { gid } });
 };
 const createMember = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     const groupId = req.body.gid;
     const uid = req.body.uid;
     const memberId = await Admin.createMember(groupId, uid, role);
@@ -40,15 +44,10 @@ const createMember = async (req, res) => {
     }
     res.status(200).json({ data: { memberId } });
 };
-const getUserGroups = async (req, res) => {
-    let uid = req.params.id;
-    const groups = await Admin.getUserGroups(uid);
-    if (!groups) {
-        return res.status(500).json({ err: 'Internal Server Error' });
-    }
-    res.status(200).json({ data: groups });
-};
 const getGroupUsers = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['viewer']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     let gid = req.params.id;
     const members = await Admin.getGroupUsers(gid);
     if (!members) {
@@ -57,6 +56,9 @@ const getGroupUsers = async (req, res) => {
     res.status(200).json({ data: members });
 };
 const updateGroup = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     console.log(req.body);
     let gid = req.body.gid;
     let group_name = req.body.group_name;
@@ -67,6 +69,9 @@ const updateGroup = async (req, res) => {
     res.status(200).json({ data: null });
 };
 const deleteMember = async (req, res) => {
+    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     const groupId = req.params.gid;
     const userId = req.params.uid;
     const result = await Admin.deleteMember(groupId, userId);
@@ -75,4 +80,4 @@ const deleteMember = async (req, res) => {
     }
     res.status(200).json({ data: null });
 };
-module.exports = { createGroup, createMember, getUserGroups, getGroupUsers, updateGroup, deleteMember };
+module.exports = { createGroup, createMember, getGroupUsers, updateGroup, deleteMember };
