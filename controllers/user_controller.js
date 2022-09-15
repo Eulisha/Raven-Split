@@ -111,7 +111,7 @@ const getUserProfile = async (req, res) => {
     res.status(200).json({ data: req.user });
 };
 const getUserGroups = async (req, res) => {
-    let uid = req.params.id;
+    let uid = req.user.id;
     const groups = await User.getUserGroups(uid);
     if (!groups) {
         return res.status(500).json({ err: 'Internal Server Error' });

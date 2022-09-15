@@ -1,7 +1,7 @@
 const Admin = require('../models/admin_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
-const { USER_ROLE } = require('../config/mapping_reverse');
+const { USER_ROLE } = require('../config/mapping');
 
 const createGroup = async (req, res) => {
     const group_name = req.body.group_name;
@@ -33,7 +33,7 @@ const createGroup = async (req, res) => {
     res.status(200).json({ data: { gid } });
 };
 const createMember = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const groupId = req.body.gid;
@@ -45,18 +45,18 @@ const createMember = async (req, res) => {
     res.status(200).json({ data: { memberId } });
 };
 const getGroupUsers = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['viewer']) {
+    console.log('@control getGroupUsers');
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    let gid = req.params.id;
-    const members = await Admin.getGroupUsers(gid);
+    const members = await Admin.getGroupUsers(req.params.id);
     if (!members) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     res.status(200).json({ data: members });
 };
 const updateGroup = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     console.log(req.body);
@@ -69,7 +69,7 @@ const updateGroup = async (req, res) => {
     res.status(200).json({ data: null });
 };
 const deleteMember = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const groupId = req.params.gid;

@@ -15,7 +15,8 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 };
 
 const authentication = async (req, res, next) => {
-    console.log('authentication: ', req.get('Authorization'));
+    console.log('- authentication');
+    // console.log('@authentication: ', req.get('Authorization'));
     let accessToken = req.get('Authorization');
     if (!accessToken) {
         return res.status(401).json({ err: 'Unauthorized' });
@@ -29,7 +30,7 @@ const authentication = async (req, res, next) => {
     // verify JWT
     try {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
-        console.log('decoded info: ', decodedUserInfo);
+        console.log('decoded info id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
             return res.status(403).json({ err: 'Forbidden' });
         }
@@ -43,11 +44,14 @@ const authentication = async (req, res, next) => {
 
 const authorization = async (req, res, next) => {
     // get user-groups and roles
-    const userGroups = await User.getUserGroups(req.user.id);
-    if (!userGroups) {
+    const uid = req.user.id;
+    const gid = req.params.id;
+    console.log('- authorizaiont: uid, gid: ', uid, gid);
+    const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
+    if (!userGroupRole) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
-    req.userGroups = userGroups;
+    req.userGroupRole = userGroupRole;
     next();
 };
 

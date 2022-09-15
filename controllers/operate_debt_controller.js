@@ -8,7 +8,7 @@ const Mapping = require('../config/mapping');
 const { updated_balance_graph } = require('../util/bundle_getter');
 
 const postDebt = async (req, res) => {
-    if (req.userGroups.gid !== req.body.debt_main.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== req.body.debt_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
 
@@ -77,7 +77,7 @@ const postDebt = async (req, res) => {
     }
 };
 const updateDebt = async (req, res) => {
-    if (req.userGroups.gid !== req.body.debt_main.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== req.body.debt_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const debtId = req.body.debt_Id;
@@ -161,7 +161,7 @@ const updateDebt = async (req, res) => {
 };
 
 const deleteDebt = async (req, res) => {
-    if (req.userGroups.gid !== req.params.id || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== req.params.id || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const debtId = req.params.id;
@@ -240,7 +240,7 @@ const deleteDebt = async (req, res) => {
 };
 
 const postSettle = async (req, res) => {
-    if (req.userGroups.gid !== req.body.settle_main.gid || req.userGroups.role < Mapping.USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== req.body.settle_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const conn = await pool.getConnection();

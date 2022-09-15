@@ -1,9 +1,10 @@
 const pool = require('../config/mysql');
 
-const getDebts = async (group, pageSize, paging = 0) => {
+const getDebts = async (gid, pageSize, paging = 0) => {
+    console.log('@getDebts: gid: ', gid);
     try {
         const debtMainSql = 'SELECT id, `date`, title, total, lender, split_method FROM debt_main WHERE gid = ?  AND status = 1 LIMIT ? OFFSET ?;'; //排序方式為日期+建立順序(id)
-        const debtMainResult = await pool.query(debtMainSql, [group, Number(pageSize), Number(pageSize) * paging]);
+        const debtMainResult = await pool.query(debtMainSql, [gid, Number(pageSize), Number(pageSize) * paging]);
         return debtMainResult;
     } catch (err) {
         console.log('ERROR AT getDebts: ', err);
@@ -13,6 +14,7 @@ const getDebts = async (group, pageSize, paging = 0) => {
 
 //for update, delete internal back-end usage
 const getDebt = async (conn, debtId) => {
+    console.log('@getDebt: debtMainId uid: ', debtId, uid);
     try {
         const sql = 'SELECT gid, lender FROM debt_main WHERE id = ? AND status = 1 FOR UPDATE;';
         const data = [debtId];
@@ -24,31 +26,40 @@ const getDebt = async (conn, debtId) => {
     }
 };
 
-const getDebtDetail = async (debtMainId, uid) => {
-    if (uid) {
-        //查該筆帳某個人的分帳
-        const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? d.borrower = ? AND m.status = 1';
-        const data = [debtMainId, uid];
-        const [result] = await pool.execute(sql, data);
-        return result;
-    } else {
-        //查該筆帳的所有分帳
-        const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
-        const data = [debtMainId];
-        const [result] = await pool.execute(sql, data);
-        return result;
+const getDebtDetail = async (debtId, uid) => {
+    console.log('@getDebtDetail: debtId uid: ', debtId, uid);
+    try {
+        if (uid) {
+            //查該筆帳某個人的分帳
+            const sql =
+                'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND d.borrower = ? AND m.status = 1';
+            const data = [debtId, uid];
+            const [result] = await pool.execute(sql, data);
+            return result;
+        } else {
+            //查該筆帳的所有分帳
+            const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
+            const data = [debtMainId];
+            const [result] = await pool.execute(sql, data);
+            return result;
+        }
+    } catch (err) {
+        console.log('ERROR AT getDebtDetail: ', err);
+        return false;
     }
 };
 
-const getDebtDetailTrx = async (conn, debtMainId) => {
+const getDebtDetailTrx = async (conn, debtId) => {
+    console.log('@getDebtDetailTrx: debtId uid: ', debtId);
     //查該筆帳的所有分帳
     const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
-    const data = [debtMainId];
+    const data = [debtId];
     const [result] = await conn.execute(sql, data);
     return result;
 };
 
 const createDebt = async (conn, debtMain) => {
+    console.log('@createDebt: debtMain : ', debtMain);
     console.log(debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1);
     try {
         const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
@@ -63,6 +74,7 @@ const createDebt = async (conn, debtMain) => {
 };
 
 const createDebtDetail = async (conn, debtMainId, debtDetail) => {
+    console.log('@createDebtDetail: debtMainId, debtDetail: ', debtMainId, debtDetail);
     try {
         const detailIds = [];
         for (let debt of debtDetail) {
@@ -78,6 +90,7 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
     }
 };
 const getAllBalances = async (gid) => {
+    console.log('@getAllBalances: gid : ', gid);
     try {
         console.log('gid: ', gid);
         const sql = 'SELECT * from debt_balance WHERE gid = ?';
@@ -90,6 +103,7 @@ const getAllBalances = async (gid) => {
     }
 };
 const getBalance = async (conn, gid, borrower, lender) => {
+    console.log('@getBalances: gid, borrower, lender : ', gid, borrower, lender);
     try {
         console.log('data for get balance: ', 'gid ', gid, 'lender ', lender, 'borrower', borrower);
         const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
@@ -102,6 +116,7 @@ const getBalance = async (conn, gid, borrower, lender) => {
     }
 };
 const createBalance = async (conn, gid, borrower, lender, debt) => {
+    console.log('@createBalance: gid, borrower, lender, debt : ', gid, borrower, lender, debt);
     try {
         const sql = `INSERT INTO debt_balance SET gid = ?, borrower = ?, lender = ?, amount=? `;
         const data = [gid, borrower, lender, debt];
@@ -113,7 +128,7 @@ const createBalance = async (conn, gid, borrower, lender, debt) => {
     }
 };
 const updateBalance = async (conn, id, borrower, lender, newBalance) => {
-    console.log('data for update balance model: ', 'id ', id, 'borrower ', borrower, 'lender ', lender, 'newbalance ', newBalance);
+    console.log('@updateBalance: id, borrower, lender, newBalance:', id, borrower, lender, newBalance);
     try {
         const sql = 'UPDATE debt_balance SET borrower = ?, lender = ?, amount=? WHERE id = ?';
         const data = [borrower, lender, newBalance, id];
@@ -126,6 +141,7 @@ const updateBalance = async (conn, id, borrower, lender, newBalance) => {
 };
 const deleteGroupDebts = async (conn, gid) => {
     // WARNING: THIS MODEL IS NOT USED AFTER CHANGING SETTLE FLOW LOGIC
+    console.log('@deleteGroupDebts: gid : ', gid);
     try {
         console.log('data for delet group model: id ', gid);
         const sql = 'UPDATE debt_main SET status = 0 WHERE gid = ?;';
@@ -138,6 +154,7 @@ const deleteGroupDebts = async (conn, gid) => {
     }
 };
 const deleteDebt = async (conn, debtId, status) => {
+    console.log('@deleteDebt: gid : ', debtId, status);
     try {
         const sql = 'UPDATE debt_main SET status = ? WHERE id = ?;'; //customer delete: 0 customer update: -1
         const data = [status, debtId];
@@ -149,6 +166,7 @@ const deleteDebt = async (conn, debtId, status) => {
     }
 };
 const deleteDebtBalance = async (conn, gid) => {
+    console.log('@deleteDebtBalance: gid : ', gid);
     try {
         console.log('groupId:', gid);
         const sql = 'DELETE FROM debt_balance WHERE gid = ?;';

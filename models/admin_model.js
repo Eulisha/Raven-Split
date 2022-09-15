@@ -1,6 +1,7 @@
 const pool = require('../config/mysql');
 
 const createGroup = async (conn, group_name, members) => {
+    console.log('@createGroup: group_name, members: ', group_name, members);
     try {
         console.log(conn);
         //新增group
@@ -21,6 +22,7 @@ const createGroup = async (conn, group_name, members) => {
     }
 };
 const createMember = async (gid, uid, role) => {
+    console.log('@createMember: gid, uid, role', gid, uid, role);
     try {
         const sql = 'INSERT INTO group_users SET gid = ?, uid = ?, role = ?, status = ?';
         const data = [gid, uid, role, 1];
@@ -34,6 +36,7 @@ const createMember = async (gid, uid, role) => {
 };
 
 const getGroupUsers = async (gid) => {
+    console.log('@getGroupUsers: gid:', gid);
     try {
         console.log('gid: ', gid);
         const sql = 'SELECT uid, name FROM group_users LEFT JOIN `users` ON `users`.id = group_users.uid WHERE group_users.gid = ? AND `users`.status = ?;';
@@ -48,6 +51,7 @@ const getGroupUsers = async (gid) => {
 };
 
 const updateGroup = async (gid, group_name) => {
+    console.log('updateGroup: gid, group_name:', gid, group_name);
     try {
         // console.log(group_name);
         const groupSql = 'UPDATE `groups` SET name = ? WHERE id = ?';
@@ -60,6 +64,7 @@ const updateGroup = async (gid, group_name) => {
     }
 };
 const setSettling = async (gid, uid) => {
+    console.log('@setSettling: gid, uid:', gid, uid);
     try {
         const sql = 'UPDATE `group_users` SET is_settling = 1 WHERE gid = ? AND uid = ?';
         const data = [gid, uid];
@@ -71,6 +76,7 @@ const setSettling = async (gid, uid) => {
     }
 };
 const deleteMember = async (gid, uid) => {
+    console.log('@deleteMember: gid,uid: ', gid, uid);
     try {
         console.log(gid, uid);
         const sql = 'UPDATE group_users SET status = 0 WHERE gid = ? AND uid = ?';

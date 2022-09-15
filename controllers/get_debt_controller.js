@@ -7,16 +7,21 @@ const pageSize = process.env.PAGE_SIZE;
 const Mapping = require('../config/mapping');
 
 const getDebts = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    console.log('@getDebts control:', req.params);
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const group = Number(req.query.group);
-    const uid = Number(req.query.uid);
+
+    const group = Number(req.params.id);
+    const uid = req.user.id;
     const paging = Number(req.query.paging) || 0;
     const debtMainRecords = [];
     //撈所有該群組內的帳
     try {
         const [debtMainResult] = await Debt.getDebts(group, pageSize, paging);
+        if (!debtMainResult) {
+            res.status(500).json({ err: 'Internal Server Error' });
+        }
         console.log('debtMain:', debtMainResult);
         //查借貸明細
         for (let debtMain of debtMainResult) {
@@ -29,6 +34,8 @@ const getDebts = async (req, res) => {
             //自己沒有參與這筆帳
             if (!debtDetailResult) {
                 ownAmount = 0;
+            } else {
+                ownAmount = debtDetailResult.amount;
             }
             //自己是付錢的人
             if (uid === debtMain.lender) {
@@ -44,7 +51,7 @@ const getDebts = async (req, res) => {
                 isOwned,
                 lender: debtMain.lender,
                 split_method: debtMain.split_method,
-                ownAmount: debtDetailResult.amount,
+                ownAmount,
             };
             debtMainRecords.push(debtMainRecord);
         }
@@ -55,7 +62,7 @@ const getDebts = async (req, res) => {
     }
 };
 const getDebtDetail = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     try {
@@ -68,7 +75,7 @@ const getDebtDetail = async (req, res) => {
     }
 };
 const getMeberBalances = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     try {
@@ -81,7 +88,7 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
-    if (req.userGroups.gid !== req.params.gid || req.userGroups.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = req.params.id;
