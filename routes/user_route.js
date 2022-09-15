@@ -6,6 +6,6 @@ const userRoute = express.Router();
 userRoute.post('/signup', signUpRule, validate, signUp);
 userRoute.post('/signin', signInRule, validate, signIn);
 userRoute.get('/profile', getUserProfile);
-userRoute.get('/user-groups/:id', getUserGroups);
+userRoute.get('/groups/:id', getUserGroups);
 
 module.exports = userRoute;
