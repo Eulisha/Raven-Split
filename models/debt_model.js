@@ -103,7 +103,7 @@ const getAllBalances = async (gid) => {
     }
 };
 const getBalance = async (conn, gid, borrower, lender) => {
-    console.log('@getBalances: gid, borrower, lender : ', gid, borrower, lender);
+    console.log('@getBalance model: gid, borrower, lender : ', gid, borrower, lender);
     try {
         console.log('data for get balance: ', 'gid ', gid, 'lender ', lender, 'borrower', borrower);
         const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';

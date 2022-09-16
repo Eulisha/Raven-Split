@@ -82,32 +82,43 @@ const updateDebt = async (req, res) => {
     }
     const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
-    const debtMain = req.body.debt_main;
-    const debtDetail = req.body.debt_detail;
+    const debtMainNew = req.body.debt_main;
+    const debtDetailNew = req.body.debt_detail;
+    console.info('gid, debtId, debtMainNew, debtDetailNew', gid, debtId, debtMainNew, debtDetailNew);
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     const session = driver.session();
 
     try {
-        const status = Mapping.deprach; //custom update, create new one directly
+        //0) get previous debt data for balance and best path usage
+        const [debtMainOld] = await Debt.getDebt(conn, debtId);
+        const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
+        if (!debtMainOld || !debtDetailOld) {
+            throw new Error('Internal Server Error');
+        }
+        if (debtMainOld.length === 0 || debtDetailOld.length === 0) {
+            throw new Error('Previous debt record not found.');
+        }
+        console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 
         //1) mysql set previous debt status to 0
+        const status = Mapping.DEBT_STATUS.deprach; //custom update, create new one directly
         const deleteResult = await Debt.deleteDebt(conn, debtId, status);
         if (!deleteResult) {
             throw new Error('Internal Server Error');
         }
 
         //2) MYSQL create new raw data
-        const debtMainId = await Debt.createDebt(conn, debtMain);
+        const debtMainId = await Debt.createDebt(conn, debtMainNew);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
-        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
+        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetailNew);
         if (!detailIds) {
             throw new Error('Internal Server Error');
         }
-        console.log(debtDetailOld);
+        console.debug('debtDetailOld: ', debtDetailOld);
         //set debt amount reversely stand for delete
         debtDetailOld.forEach((ele, ind) => {
             debtDetailOld[ind].amount = -ele.amount;
@@ -124,12 +135,12 @@ const updateDebt = async (req, res) => {
         }
 
         //4)Neo4j update edge
-        console.log('start neo4j');
+        console.info('start neo4j');
         await session.writeTransaction(async (txc) => {
             const oldEdgeesult = await updateGraphEdge(txc, debtMainOld, debtDetailOld);
             const newEdgeesult = await updateGraphEdge(txc, debtMainNew, debtDetailNew);
-            console.log('Neo4j更新線的結果：', oldEdgeesult);
-            console.log('Neo4j更新線的結果：', newEdgeesult);
+            console.debug('Neo4j更新線的結果：', oldEdgeesult);
+            console.debug('Neo4j更新線的結果：', newEdgeesult);
 
             //5)算最佳解
             const [graph, debtsForUpdate] = await getBestPath(txc, debtMainNew.gid);
@@ -137,7 +148,7 @@ const updateDebt = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
             //NEO4j更新best path graph
-            console.log('debtsForUpdate:  ', debtsForUpdate);
+            console.debug('debtsForUpdate:  ', debtsForUpdate);
             const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
             if (!updateGraph) {
                 throw new Error('Internal Server Error');
@@ -239,18 +250,20 @@ const deleteDebt = async (req, res) => {
 };
 
 const postSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== req.body.settle_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
+    console.log('req body', req.body);
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     const session = driver.session();
-    const { gid, date, title } = req.body.settle_main;
+    const gid = Number(req.params.id);
+    const { date, title } = req.body?.settle_main;
     //群組全體結帳的狀況
     try {
         const result = await Graph.getGraph(gid);
         if (result.records.length === 0) {
-            return res.status(400).json({ err: 'no matched result' });
+            return res.status(400).json({ err: 'No matched result' });
         }
         for (let record of result.records) {
             let amount = record.get('amount').toNumber();

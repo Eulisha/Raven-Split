@@ -36,15 +36,13 @@ const signIn = async (email) => {
     }
 };
 const getUserGroupRole = async (uid, gid) => {
-    console.log('@getUserGroupRole: uid gid: ', uid, gid);
+    console.log('uid gid: ', uid, gid);
     try {
         const sql = 'SELECT gid, role FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND gid = ? AND `groups`.status = ?;';
         const data = [uid, gid, 1];
         const [result] = await pool.execute(sql, data);
-        console.log(result);
         return result;
     } catch (err) {
-        console.log('here1');
         console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
