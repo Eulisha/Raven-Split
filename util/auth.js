@@ -16,7 +16,7 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 
 const authentication = async (req, res, next) => {
     console.log('- authentication');
-    // console.log('@authentication: ', req.get('Authorization'));
+    console.log('@authentication: ', req.get('Authorization'));
     let accessToken = req.get('Authorization');
     if (!accessToken) {
         return res.status(401).json({ err: 'Unauthorized' });
@@ -45,7 +45,7 @@ const authentication = async (req, res, next) => {
 const authorization = async (req, res, next) => {
     // get user-groups and roles
     const uid = req.user.id;
-    const gid = req.params.id;
+    const gid = Number(req.params.id);
     console.log('- authorizaiont: uid, gid: ', uid, gid);
     const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
     if (!userGroupRole) {

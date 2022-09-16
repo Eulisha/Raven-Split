@@ -69,7 +69,7 @@ const postDebt = async (req, res) => {
 
         res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
-        console.log('error: ', err);
+        console.error('ERROR: ', err);
         await conn.rollback();
         await conn.release();
         session.close();
@@ -77,21 +77,20 @@ const postDebt = async (req, res) => {
     }
 };
 const updateDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== req.body.debt_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const debtId = req.body.debt_Id;
-    const debtMainOld = req.body.debt_main_old; //{gid, date, title, total, lender, split_method}
-    const debtDetailOld = req.body.debt_detail_old; //{ [ { borrower, amount} ] }
-    const debtMainNew = req.body.debt_main_new;
-    const debtDetailNew = req.body.debt_detail_new;
+    const gid = Number(req.params.id);
+    const debtId = Number(req.params.debtId);
+    const debtMain = req.body.debt_main;
+    const debtDetail = req.body.debt_detail;
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     const session = driver.session();
 
     try {
-        const status = 0; //custom update, create new one directly
+        const status = Mapping.deprach; //custom update, create new one directly
 
         //1) mysql set previous debt status to 0
         const deleteResult = await Debt.deleteDebt(conn, debtId, status);
@@ -100,11 +99,11 @@ const updateDebt = async (req, res) => {
         }
 
         //2) MYSQL create new raw data
-        const debtMainId = await Debt.createDebt(conn, debtMainNew);
+        const debtMainId = await Debt.createDebt(conn, debtMain);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
-        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetailNew);
+        const detailIds = await Debt.createDebtDetail(conn, debtMainId, debtDetail);
         if (!detailIds) {
             throw new Error('Internal Server Error');
         }
@@ -153,7 +152,7 @@ const updateDebt = async (req, res) => {
         const updateResult = updated_balance_graph(debtMainOld.gid);
         res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
-        console.log('error: ', err);
+        console.error('ERROR: ', err);
         await conn.rollback();
         session.close();
         return res.status(500).json({ err });
@@ -161,10 +160,10 @@ const updateDebt = async (req, res) => {
 };
 
 const deleteDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== req.params.id || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const debtId = req.params.id;
+    const debtId = Number(req.params.debtId);
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -231,7 +230,7 @@ const deleteDebt = async (req, res) => {
         const updateResult = await updated_balance_graph(debtMain[0].gid);
         res.status(200).json({ data: { debtId, updateResult } });
     } catch (err) {
-        console.log('error: ', err);
+        console.error('ERROR: ', err);
         await conn.rollback();
         await conn.release();
         session.close();

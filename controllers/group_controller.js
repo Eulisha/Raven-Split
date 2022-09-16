@@ -49,7 +49,7 @@ const getGroupUsers = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const members = await Admin.getGroupUsers(req.params.id);
+    const members = await Admin.getGroupUsers(Number(req.params.id));
     if (!members) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }

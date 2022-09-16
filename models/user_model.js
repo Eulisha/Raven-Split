@@ -45,7 +45,7 @@ const getUserGroupRole = async (uid, gid) => {
         return result;
     } catch (err) {
         console.log('here1');
-        console.log('ERROR AT getUserGroups: ', err);
+        console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
 };
@@ -59,7 +59,7 @@ const getUserGroups = async (uid) => {
         console.log(result);
         return result;
     } catch (err) {
-        console.log('ERROR AT getUserGroups: ', err);
+        console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
 };

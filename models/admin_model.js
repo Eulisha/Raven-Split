@@ -17,7 +17,7 @@ const createGroup = async (conn, group_name, members) => {
         }
         return groupId;
     } catch (err) {
-        console.log('ERROR AT createGroup: ', err);
+        console.error('ERROR AT createGroup: ', err);
         return null;
     }
 };
@@ -30,7 +30,7 @@ const createMember = async (gid, uid, role) => {
         const memberId = result.insertId;
         return memberId;
     } catch (err) {
-        console.log('ERROR AT createMember: ', err);
+        console.error('ERROR AT createMember: ', err);
         return null;
     }
 };
@@ -45,7 +45,7 @@ const getGroupUsers = async (gid) => {
         console.log(result);
         return result;
     } catch (err) {
-        console.log('ERROR AT getGroupUsers: ', err);
+        console.error('ERROR AT getGroupUsers: ', err);
         return null;
     }
 };
@@ -59,7 +59,7 @@ const updateGroup = async (gid, group_name) => {
         await pool.execute(groupSql, groupData);
         return true;
     } catch (err) {
-        console.log('ERROR AT updateGroup: ', err);
+        console.error('ERROR AT updateGroup: ', err);
         return null;
     }
 };
@@ -71,7 +71,7 @@ const setSettling = async (gid, uid) => {
         await pool.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT setSettler: ', err);
+        console.error('ERROR AT setSettler: ', err);
         return null;
     }
 };
@@ -84,7 +84,7 @@ const deleteMember = async (gid, uid) => {
         await pool.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteMember: ', err);
+        console.error('ERROR AT deleteMember: ', err);
         return null;
     }
 };

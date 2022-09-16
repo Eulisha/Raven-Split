@@ -7,21 +7,21 @@ const getDebts = async (gid, pageSize, paging = 0) => {
         const debtMainResult = await pool.query(debtMainSql, [gid, Number(pageSize), Number(pageSize) * paging]);
         return debtMainResult;
     } catch (err) {
-        console.log('ERROR AT getDebts: ', err);
+        console.error('ERROR AT getDebts: ', err);
         return false;
     }
 };
 
 //for update, delete internal back-end usage
 const getDebt = async (conn, debtId) => {
-    console.log('@getDebt: debtMainId uid: ', debtId, uid);
+    console.log('@getDebt: debtMainId: ', debtId);
     try {
         const sql = 'SELECT gid, lender FROM debt_main WHERE id = ? AND status = 1 FOR UPDATE;';
         const data = [debtId];
         const [result] = await conn.execute(sql, data);
         return result;
     } catch (err) {
-        console.log('ERROR AT getDebt: ', err);
+        console.error('ERROR AT getDebt: ', err);
         return false;
     }
 };
@@ -39,12 +39,12 @@ const getDebtDetail = async (debtId, uid) => {
         } else {
             //查該筆帳的所有分帳
             const sql = 'SELECT d.id, d.borrower, d.amount FROM debt_detail AS d LEFT JOIN debt_main AS m ON d.debt_id = m.id WHERE d.debt_id = ? AND m.status = 1';
-            const data = [debtMainId];
+            const data = [debtId];
             const [result] = await pool.execute(sql, data);
             return result;
         }
     } catch (err) {
-        console.log('ERROR AT getDebtDetail: ', err);
+        console.error('ERROR AT getDebtDetail: ', err);
         return false;
     }
 };
@@ -68,7 +68,7 @@ const createDebt = async (conn, debtMain) => {
         let debtMainId = result.insertId;
         return debtMainId;
     } catch (err) {
-        console.log('ERROR AT createDebt: ', err);
+        console.error('ERROR AT createDebt: ', err);
         return false;
     }
 };
@@ -85,7 +85,7 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
         }
         return detailIds;
     } catch (err) {
-        console.log('ERROR AT createDebtDetail: ', err);
+        console.error('ERROR AT createDebtDetail: ', err);
         return false;
     }
 };
@@ -98,7 +98,7 @@ const getAllBalances = async (gid) => {
         const [result] = await pool.execute(sql, data);
         return result;
     } catch (err) {
-        console.log('ERROR AT getAllBalance: ', err);
+        console.error('ERROR AT getAllBalance: ', err);
         return false;
     }
 };
@@ -111,7 +111,7 @@ const getBalance = async (conn, gid, borrower, lender) => {
         const [result] = await conn.execute(sql, data);
         return result;
     } catch (err) {
-        console.log('ERROR AT getBalance: ', err);
+        console.error('ERROR AT getBalance: ', err);
         return false;
     }
 };
@@ -123,7 +123,7 @@ const createBalance = async (conn, gid, borrower, lender, debt) => {
         const result = await conn.execute(sql, data);
         return result;
     } catch (err) {
-        console.log('ERROR AT createBalance: ', err);
+        console.error('ERROR AT createBalance: ', err);
         return false;
     }
 };
@@ -135,7 +135,7 @@ const updateBalance = async (conn, id, borrower, lender, newBalance) => {
         await conn.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT updateBalance: ', err);
+        console.error('ERROR AT updateBalance: ', err);
         return false;
     }
 };
@@ -149,19 +149,19 @@ const deleteGroupDebts = async (conn, gid) => {
         await conn.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteDebtMain: ', err);
+        console.error('ERROR AT deleteDebtMain: ', err);
         return false;
     }
 };
 const deleteDebt = async (conn, debtId, status) => {
-    console.log('@deleteDebt: gid : ', debtId, status);
+    console.log('@deleteDebt: gid status: ', debtId, status);
     try {
         const sql = 'UPDATE debt_main SET status = ? WHERE id = ?;'; //customer delete: 0 customer update: -1
         const data = [status, debtId];
         await conn.execute(sql, data);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteDebt: ', err);
+        console.error('ERROR AT deleteDebt: ', err);
         return false;
     }
 };
@@ -175,7 +175,7 @@ const deleteDebtBalance = async (conn, gid) => {
         console.log(result);
         return true;
     } catch (err) {
-        console.log('ERROR AT deleteDebtBalance: ', err);
+        console.error('ERROR AT deleteDebtBalance: ', err);
         return false;
     }
 };
@@ -191,7 +191,7 @@ const createBatchBalance = async (gid, memberCombo, conn) => {
         }
         return true;
     } catch (err) {
-        console.log('ERROR AT createDebtBalance: ', err);
+        console.error('ERROR AT createDebtBalance: ', err);
         return null;
     }
 };

@@ -5,14 +5,14 @@ const { authentication, authorization } = require('../util/auth');
 const debtRoute = express.Router();
 // debtRoute.use(authentication, authorization);
 
-debtRoute.get('/debts/:id', authentication, authorization, getDebts);
-debtRoute.get('/debts-balances/:id', authentication, authorization, getMeberBalances);
-debtRoute.get('/debt-detail/:id', getDebtDetail);
-debtRoute.get('/settle/:id', getSettle);
-debtRoute.post('/debt', postDebt);
-debtRoute.post('/settle', postSettle);
-debtRoute.put('/debt', updateDebt);
-debtRoute.delete('/debt/:id', deleteDebt);
+debtRoute.get('/:id', authentication, authorization, getDebts);
+debtRoute.get('/balances/:id', authentication, authorization, getMeberBalances);
+debtRoute.get('/detail/:id/:debtId', authentication, authorization, getDebtDetail);
+debtRoute.get('/settle/:id', authentication, authorization, getSettle);
+debtRoute.post('/:id', authentication, authorization, postDebt);
+debtRoute.post('/settle/:id', authentication, authorization, postSettle);
+debtRoute.put('/:id/:debtId', authentication, authorization, updateDebt);
+debtRoute.delete('/:id/:debtId', authentication, authorization, deleteDebt);
 debtRoute.delete('/pair-debts');
 debtRoute.delete('/group-debts/:id');
 

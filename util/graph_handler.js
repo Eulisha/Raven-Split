@@ -76,7 +76,6 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
 };
 const getBestPath = async (txc, gid) => {
     try {
-        console.time('all');
         const graph = {};
         const allNodeList = [];
         const pathsStructure = {};
@@ -86,10 +85,8 @@ const getBestPath = async (txc, gid) => {
         // 1) Neo4j get all path
         try {
             // 1-1) 查詢圖中所有node
-            console.time('db1');
             console.log('TO Neo allNode:  ', neo4j.int(gid));
             const allNodesResult = await Graph.allNodes(txc, neo4j.int(gid));
-            console.timeEnd('db1');
             allNodesResult.records.forEach((element) => {
                 let name = element.get('name').toNumber();
                 graph[name] = {};
@@ -99,10 +96,8 @@ const getBestPath = async (txc, gid) => {
 
             // 1-2) 查每個source出去的edge數量
             for (let source of allNodeList) {
-                console.time('db2');
                 console.log('To Neo sourceEdge:  ', neo4j.int(gid), neo4j.int(source));
                 const sourceEdgeResult = await Graph.sourceEdge(txc, neo4j.int(gid), neo4j.int(source));
-                console.timeEnd('db2');
                 pathsStructure[source] = { sinksSummary: { sinks: [], qty: 0 }, sinks: {} };
                 pathsStructure[source].sinksSummary.qty = sourceEdgeResult.records.length; //紀錄qty
                 sourceEdgeResult.records.forEach((element, index) => {
@@ -114,7 +109,7 @@ const getBestPath = async (txc, gid) => {
                 return b.qty - a.qty; //排序列表供後面決定順序用
             });
         } catch (err) {
-            console.log('ERROR AT getBestPath Neo4j Search: ', err);
+            console.error('ERROR AT getBestPath Neo4j Search: ', err);
             return false;
         }
         // console.log('order:', order);
@@ -123,12 +118,10 @@ const getBestPath = async (txc, gid) => {
         for (let source of order) {
             // console.log('source: ', source.source);
             let currentSource = source.source; //當前的source
-            console.time('db3');
             // 1-3) 查所有的路徑
             console.log('To Neo allPath:  ', neo4j.int(gid), neo4j.int(currentSource));
             const pathsResult = await Graph.allPaths(txc, neo4j.int(gid), neo4j.int(currentSource));
             // console.log(pathsResult);
-            console.timeEnd('db3');
             //第二層：iterate paths in source
             for (let i = 0; i < pathsResult.records.length; i++) {
                 const sink = pathsResult.records[i]._fields[0].end.properties.name.toNumber(); //當前path的sink
@@ -167,7 +160,6 @@ const getBestPath = async (txc, gid) => {
         // console.log('最終存好的graph: ', graph);
 
         // 3) calculate best path
-        console.time('split');
         // 第一層：iterate sources by order
         const debtsForUpdate = []; //用來存所有被變動的路徑與值
         for (let source of order) {
@@ -225,12 +217,10 @@ const getBestPath = async (txc, gid) => {
                 }
             });
         }
-        console.timeEnd('split');
         console.log(graph);
-        console.timeEnd('all');
         return [graph, debtsForUpdate];
     } catch (err) {
-        console.log('ERROR AT getBestPath: ', err);
+        console.error('ERROR AT getBestPath: ', err);
         return false;
     }
 };

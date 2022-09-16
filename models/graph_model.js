@@ -21,7 +21,7 @@ const createNodes = async (gid, members, conn) => {
             return true;
         });
     } catch (err) {
-        console.log('ERROR AT createGraphNodes: ', err);
+        console.error('ERROR AT createGraphNodes: ', err);
         return null;
     }
 };
@@ -42,7 +42,7 @@ const getCurrEdge = async (txc, gid, lender, map) => {
         return result;
         // });
     } catch (err) {
-        console.log('ERROR AT getCurrEdge: ', err);
+        console.error('ERROR AT getCurrEdge: ', err);
         return null;
     }
 };
@@ -61,7 +61,7 @@ const deletePath = async (txc, gid, borrower, lender) => {
         console.log('deletePath: ', result.summary.updateStatistics);
         // });
     } catch (err) {
-        console.log('ERROR AT deletePath: ', err);
+        console.error('ERROR AT deletePath: ', err);
         return false;
     }
 };
@@ -87,7 +87,7 @@ const updateEdge = async (txc, gid, newMap) => {
         return true;
         // });
     } catch (err) {
-        console.log('ERROR AT updateGraphEdge: ', err);
+        console.error('ERROR AT updateGraphEdge: ', err);
         return null;
     }
 };
@@ -107,7 +107,7 @@ const updateBestPath = async (txc, debtsForUpdate) => {
         return true;
         // });
     } catch (err) {
-        console.log('ERROR AT updateGraphBestPath: ', err);
+        console.error('ERROR AT updateGraphBestPath: ', err);
         return false;
     }
 };
@@ -136,7 +136,7 @@ const getGraph = async (gid) => {
             return result;
         });
     } catch (err) {
-        console.log('ERROR AT getGraph: ', err);
+        console.error('ERROR AT getGraph: ', err);
         return null;
     } finally {
         session.close();
@@ -152,7 +152,7 @@ const allNodes = async (txc, gid) => {
         return result;
         // });
     } catch (err) {
-        console.log('ERROR AT allNodes: ', err);
+        console.error('ERROR AT allNodes: ', err);
         return false;
     }
 };
@@ -174,7 +174,7 @@ const sourceEdge = async (txc, gid, source) => {
         // console.log(result.records[0]);
         // await session.close();
     } catch (err) {
-        console.log('ERROR AT sourceEdge: ', err);
+        console.error('ERROR AT sourceEdge: ', err);
         return false;
     }
 };
@@ -207,7 +207,7 @@ const allPaths = async (txc, gid, currentSource, sinkNode) => {
         return result;
         // });
     } catch (err) {
-        console.log('ERROR AT allPaths: ', err);
+        console.error('ERROR AT allPaths: ', err);
         return false;
     }
 };

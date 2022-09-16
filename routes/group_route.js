@@ -5,9 +5,9 @@ const groupRoute = express.Router();
 // groupRoute.use(authentication, authorization);
 
 groupRoute.get('/group-users/:id', authentication, authorization, getGroupUsers);
-groupRoute.post('/group', createGroup);
-groupRoute.post('/group-user', createMember);
-groupRoute.put('/group', updateGroup);
-groupRoute.delete('/group-user/:gid/:uid', deleteMember);
+groupRoute.post('/group', authentication, authorization, createGroup);
+groupRoute.post('/group-user', authentication, authorization, createMember);
+groupRoute.put('/group', authentication, authorization, updateGroup);
+groupRoute.delete('/group-user/:gid/:uid', authentication, authorization, deleteMember);
 
 module.exports = groupRoute;

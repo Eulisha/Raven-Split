@@ -9,7 +9,6 @@ const BG_COLOR = {
 };
 
 let log = console.log;
-function mylog() {}
 function getMyLog(color) {
     return function () {
         let fnName = arguments.callee.caller.name ? arguments.callee.caller.name : 'anonymous';

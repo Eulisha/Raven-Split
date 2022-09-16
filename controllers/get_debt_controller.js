@@ -12,13 +12,13 @@ const getDebts = async (req, res) => {
         return res.status(403).json({ err: 'No authorization.' });
     }
 
-    const group = Number(req.params.id);
+    const gid = Number(req.params.id);
     const uid = req.user.id;
     const paging = Number(req.query.paging) || 0;
     const debtMainRecords = [];
     //撈所有該群組內的帳
     try {
-        const [debtMainResult] = await Debt.getDebts(group, pageSize, paging);
+        const [debtMainResult] = await Debt.getDebts(gid, pageSize, paging);
         if (!debtMainResult) {
             res.status(500).json({ err: 'Internal Server Error' });
         }
@@ -28,23 +28,25 @@ const getDebts = async (req, res) => {
             let debtMainId = debtMain.id;
             let ownAmount;
             let isOwned = false;
-            const [debtDetailResult] = await Debt.getDebtDetail(debtMainId, uid);
+            let [debtDetailResult] = await Debt.getDebtDetail(debtMainId, uid);
             console.log('debtDetail:', debtDetailResult);
 
             //自己沒有參與這筆帳
             if (!debtDetailResult) {
-                ownAmount = 0;
-            } else {
-                ownAmount = debtDetailResult.amount;
+                debtDetailResult = {};
+                debtDetailResult.amount = 0;
             }
             //自己是付錢的人
             if (uid === debtMain.lender) {
                 isOwned = true;
                 ownAmount = debtMain.total - debtDetailResult.amount;
+            } else {
+                ownAmount = debtDetailResult.amount;
             }
+
             const debtMainRecord = {
                 id: debtMain.id,
-                gid: group,
+                gid,
                 date: debtMain.date,
                 title: debtMain.title,
                 total: debtMain.total,
@@ -62,11 +64,11 @@ const getDebts = async (req, res) => {
     }
 };
 const getDebtDetail = async (req, res) => {
-    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     try {
-        const debtMainId = req.params.id;
+        const debtMainId = req.params.debtId;
         const result = await Debt.getDebtDetail(debtMainId);
         res.status(200).json({ data: result });
     } catch (err) {
@@ -79,7 +81,7 @@ const getMeberBalances = async (req, res) => {
         return res.status(403).json({ err: 'No authorization.' });
     }
     try {
-        const gid = req.params.id;
+        const gid = Number(req.params.id);
         const result = await Debt.getAllBalances(gid);
         return res.status(200).json({ data: result });
     } catch (err) {
@@ -88,13 +90,14 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const gid = req.params.id;
+    const gid = Number(req.params.id);
     const uid = req.user.id;
     try {
         const resultGetGraph = await Graph.getGraph(gid);
+        console.warn(resultGetGraph);
         if (!resultGetGraph) {
             throw new Error('Internal Server Error');
         }
@@ -111,6 +114,7 @@ const getSettle = async (req, res) => {
         if (!resultSetSetting) {
             throw new Error('Internal Server Error');
         }
+        console.error(graph);
         await res.status(200).json({ data: graph });
     } catch (err) {
         console.log(err);
