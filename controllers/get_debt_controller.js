@@ -121,4 +121,106 @@ const getSettle = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
-module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle };
+const getUserBalances = async (req, res) => {
+    const uid = req.params.uid
+    try{
+    const result = await Debt.getUserBalances(uid);
+    const borrow = {}
+    const lend = {}
+    console.debug('getUserBalances result: ', result);
+
+    //borrow: 我跟lender借錢
+    if(result[0].length===0){
+        borrow=null
+    } else{
+    result[0].map((debt) => {
+        console.debug('debt: ', debt);
+        if (!borrow[debt.lender]) {
+            borrow[debt.lender] = {uid:debt.lender,pair:null,total:null,group_normal:[],group_buying:[]};
+        }
+        if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
+            //兩人分帳
+            borrow[debt.lender]["uid"] = debt.lender;
+            borrow[debt.lender]["pair"] = debt.amount;
+            borrow[debt.lender]["total"] += debt.amount;
+        } else {
+            borrow[debt.lender]["total"] += debt.amount;
+            group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+            if (Number(debt.type) === 1) {
+                //一般分帳群
+                borrow[debt.lender]["group_normal"].push(group);
+            } else {
+                //團購分帳群
+                borrow[debt.lender]["group_buying"].push(group);
+            }
+        }
+        console.debug(debt, borrow);
+    })
+}
+
+    //lend: 我借borrower錢
+    if(result[0].length===0){
+        borrow=null
+    }else{
+    result[1].map((debt) => {
+        if (!borrow[debt.lender]) {
+            borrow[debt.lender] = {uid:debt.lender,pair:null,total:null,group_normal:[],group_buying:[]};
+        }
+        if (Number(debt.type) === 2) {
+            //兩人分帳
+            lend[debt.lender]["uid"] = debt.lender;
+            lend[debt.lender]["pair"] = debt.amount;
+            lend[debt.lender]["total"] += debt.amount;
+        } else {
+            lend[debt.lender]["total"] += debt.amount;
+            group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+            if (Number(debt.type) === 1) {
+                //一般分帳群
+                lend[debt.lender]["group_normal"].push(group);
+            } else {
+                //團購分帳群
+                lend[debt.lender]["group_buying"].push(group);
+            }
+        }
+        console.debug(debt, lend);
+    });
+}
+    const data={borrow:Object.values(borrow), lend:Object.values(lend)}
+    res.status(200).json(data)
+    }catch(err){
+        console.error(err);
+        res.status(500).json({err: 'Internal Server Error.'})
+    }
+}
+
+module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, getUserBalances }
+
+// let borrow = { uid1: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] },
+//                  uid2: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] } 
+//                 };    
+
+//     constdebt = {
+//         borrow: [
+//             {
+//                 uid: 1,
+//                 total: 1000,
+//                 pair: 500,
+//                 groups: [
+//                     { gid: 10, group_name: 'A', amount: 300 },
+//                     { gid: 15, group_name: 'B', amount: 200 },
+//                 ],
+//             },
+//         ],
+//         lend: [
+//             {
+//                 uid: 2,
+//                 total: 500,
+//                 pair: 100,
+//                 groups: [
+//                     { gid: 20, group_name: 'C', amount: 200 },
+//                     { gid: 25, group_name: 'B', amount: 200 },
+//                 ],
+//             },
+//         ],
+//     };
+// }
