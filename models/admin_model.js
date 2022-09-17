@@ -1,12 +1,11 @@
 const pool = require('../config/mysql');
 
-const createGroup = async (conn, group_name, members) => {
-    console.log('@createGroup: group_name, members: ', group_name, members);
+const createGroup = async (conn, group_name, group_type, members) => {
+    console.log('@createGroup: group_name, members: ', group_name, group_type, members);
     try {
-        console.log(conn);
         //新增group
-        const groupSql = 'INSERT INTO `groups` SET name = ?, status = ?';
-        const groupData = [group_name, 1];
+        const groupSql = 'INSERT INTO `groups` SET name = ?, type = ?, status = ?';
+        const groupData = [group_name, group_type, 1];
         const groupResult = await conn.execute(groupSql, groupData);
         const groupId = groupResult[0].insertId;
         //新增mebers
