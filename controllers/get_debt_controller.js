@@ -122,7 +122,7 @@ const getSettle = async (req, res) => {
     }
 };
 const getUserBalances = async (req, res) => {
-    const uid = req.params.uid;
+    const uid = req.user.id;
     try {
         const result = await Debt.getUserBalances(uid);
         const borrow = {};
