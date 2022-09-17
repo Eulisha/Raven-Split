@@ -187,7 +187,7 @@ const getUserBalances = async (req, res) => {
             });
         }
         const data = { borrow: Object.values(borrow), lend: Object.values(lend) };
-        res.status(200).json(data);
+        res.status(200).json({ data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ err: 'Internal Server Error.' });

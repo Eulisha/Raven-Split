@@ -14,6 +14,6 @@ debtRoute.put('/debt/:id/:debtId', authentication, authorization, updateDebt);
 debtRoute.delete('/debt/:id/:debtId', authentication, authorization, deleteDebt);
 debtRoute.delete('/pair-debts');
 debtRoute.delete('/group-debts/:id');
-debtRoute.get('/user_balances', authentication, getUserBalances);
+debtRoute.get('/user-balances', authentication, getUserBalances);
 
 module.exports = debtRoute;
