@@ -122,82 +122,83 @@ const getSettle = async (req, res) => {
     }
 };
 const getUserBalances = async (req, res) => {
-    const uid = req.params.uid
-    try{
-    const result = await Debt.getUserBalances(uid);
-    const borrow = {}
-    const lend = {}
-    console.debug('getUserBalances result: ', result);
+    const uid = req.params.uid;
+    try {
+        const result = await Debt.getUserBalances(uid);
+        const borrow = {};
+        const lend = {};
+        console.debug('getUserBalances result: ', result);
 
-    //borrow: 我跟lender借錢
-    if(result[0].length===0){
-        borrow=null
-    } else{
-    result[0].map((debt) => {
-        console.debug('debt: ', debt);
-        if (!borrow[debt.lender]) {
-            borrow[debt.lender] = {uid:debt.lender,pair:null,total:null,group_normal:[],group_buying:[]};
-        }
-        if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
-            //兩人分帳
-            borrow[debt.lender]["uid"] = debt.lender;
-            borrow[debt.lender]["pair"] = debt.amount;
-            borrow[debt.lender]["total"] += debt.amount;
+        //borrow: 我跟lender借錢
+        if (result[0].length === 0) {
+            borrow = null;
         } else {
-            borrow[debt.lender]["total"] += debt.amount;
-            group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
-            if (Number(debt.type) === 1) {
-                //一般分帳群
-                borrow[debt.lender]["group_normal"].push(group);
-            } else {
-                //團購分帳群
-                borrow[debt.lender]["group_buying"].push(group);
-            }
+            result[0].map((debt) => {
+                console.debug('debt borrow: ', debt);
+                if (!borrow[debt.lender]) {
+                    borrow[debt.lender] = { uid: debt.lender, pair: null, total: null, group_normal: [], group_buying: [] };
+                }
+                if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
+                    //兩人分帳
+                    borrow[debt.lender]['uid'] = debt.lender;
+                    borrow[debt.lender]['pair'] = debt.amount;
+                    borrow[debt.lender]['total'] += debt.amount;
+                } else {
+                    borrow[debt.lender]['total'] += debt.amount;
+                    group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+                    if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
+                        //一般分帳群
+                        borrow[debt.lender]['group_normal'].push(group);
+                    } else {
+                        //團購分帳群
+                        borrow[debt.lender]['group_buying'].push(group);
+                    }
+                }
+                console.debug(debt, borrow);
+            });
         }
-        console.debug(debt, borrow);
-    })
-}
 
-    //lend: 我借borrower錢
-    if(result[0].length===0){
-        borrow=null
-    }else{
-    result[1].map((debt) => {
-        if (!borrow[debt.lender]) {
-            borrow[debt.lender] = {uid:debt.lender,pair:null,total:null,group_normal:[],group_buying:[]};
-        }
-        if (Number(debt.type) === 2) {
-            //兩人分帳
-            lend[debt.lender]["uid"] = debt.lender;
-            lend[debt.lender]["pair"] = debt.amount;
-            lend[debt.lender]["total"] += debt.amount;
+        //lend: 我借borrower錢
+        if (result[1].length === 0) {
+            borrow = null;
         } else {
-            lend[debt.lender]["total"] += debt.amount;
-            group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
-            if (Number(debt.type) === 1) {
-                //一般分帳群
-                lend[debt.lender]["group_normal"].push(group);
-            } else {
-                //團購分帳群
-                lend[debt.lender]["group_buying"].push(group);
-            }
+            result[1].map((debt) => {
+                console.debug('debt lend: ', debt);
+                if (!lend[debt.borrower]) {
+                    lend[debt.borrower] = { uid: debt.borrower, pair: null, total: null, group_normal: [], group_buying: [] };
+                }
+                if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
+                    //兩人分帳
+                    lend[debt.borrower]['uid'] = debt.borrower;
+                    lend[debt.borrower]['pair'] = debt.amount;
+                    lend[debt.borrower]['total'] += debt.amount;
+                } else {
+                    lend[debt.borrower]['total'] += debt.amount;
+                    group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+                    if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
+                        //一般分帳群
+                        lend[debt.borrower]['group_normal'].push(group);
+                    } else {
+                        //團購分帳群
+                        lend[debt.borrower]['group_buying'].push(group);
+                    }
+                }
+                console.debug(debt, lend);
+            });
         }
-        console.debug(debt, lend);
-    });
-}
-    const data={borrow:Object.values(borrow), lend:Object.values(lend)}
-    res.status(200).json(data)
-    }catch(err){
+        const data = { borrow: Object.values(borrow), lend: Object.values(lend) };
+        res.status(200).json(data);
+    } catch (err) {
         console.error(err);
-        res.status(500).json({err: 'Internal Server Error.'})
+        res.status(500).json({ err: 'Internal Server Error.' });
     }
-}
+};
 
-module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, getUserBalances }
+module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, getUserBalances };
 
 // let borrow = { uid1: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] },
-//                  uid2: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] } 
-//                 };    
+//                  uid2: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] }
+//                 };
 
 //     constdebt = {
 //         borrow: [
