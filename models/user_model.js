@@ -51,7 +51,7 @@ const getUserGroupRole = async (uid, gid) => {
 const getUserGroups = async (uid) => {
     console.log('@getGroups: uid: ', uid);
     try {
-        const sql = 'SELECT gid, name, role FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND `groups`.status = ?;';
+        const sql = 'SELECT gid, name, type, role FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND `groups`.status = ?;';
         const data = [uid, 1];
         const [result] = await pool.execute(sql, data);
         console.log(result);
