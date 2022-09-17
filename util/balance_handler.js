@@ -6,6 +6,10 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
         console.log('@updatebalance@ main, detail: ', debtMain, debtDetail);
         // 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
+            //剔除自己的帳
+            if (debt.borrower===debtMain.lender){
+                continue
+            }
             //查正向 borrower-own->lender
             const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
