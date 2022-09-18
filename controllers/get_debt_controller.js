@@ -124,14 +124,15 @@ const getSettle = async (req, res) => {
 const getUserBalances = async (req, res) => {
     const uid = req.user.id;
     try {
-        const result = await Debt.getUserBalances(uid);
-        const borrow = {};
-        const lend = {};
+        const result = await Debt.getUserBalances(uid); //同時撈borrow跟lend
+        let borrow = {};
+        let lend = {};
+        let data = {};
         console.debug('getUserBalances result: ', result);
 
         //borrow: 我跟lender借錢
         if (result[0].length === 0) {
-            borrow = null;
+            data.borrow = [];
         } else {
             result[0].map((debt) => {
                 console.debug('debt borrow: ', debt);
@@ -155,12 +156,13 @@ const getUserBalances = async (req, res) => {
                     }
                 }
                 console.debug(debt, borrow);
+                data.borrow = Object.values(borrow);
             });
         }
 
         //lend: 我借borrower錢
         if (result[1].length === 0) {
-            borrow = null;
+            data.lend = [];
         } else {
             result[1].map((debt) => {
                 console.debug('debt lend: ', debt);
@@ -184,9 +186,9 @@ const getUserBalances = async (req, res) => {
                     }
                 }
                 console.debug(debt, lend);
+                data.lend = Object.values(lend);
             });
         }
-        const data = { borrow: Object.values(borrow), lend: Object.values(lend) };
         res.status(200).json({ data });
     } catch (err) {
         console.error(err);

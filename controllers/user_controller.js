@@ -56,22 +56,23 @@ const signIn = async (req, res) => {
 
     //確認email是否存在
     const [signInResult] = await User.signIn(email);
+    console.debug(signInResult);
 
     if (!signInResult) {
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
     if (signInResult === 0) {
-        return res.status(403).json({ msg: 'email not existed.' });
+        return res.status(403).json({ err: 'Email not existed.' });
     }
 
     // hash密碼來驗證
     try {
         const hash = await bcrypt.compare(password, signInResult.password);
         if (!hash) {
-            return res.status(403).json({ msg: 'Password incorrect.' });
+            return res.status(403).json({ err: 'Password incorrect.' });
         }
     } catch (err) {
-        return res.status(500).json({ msg: 'hash fail.' });
+        return res.status(500).json({ err: 'Hash fail.' });
     }
 
     // get user-groups and roles
