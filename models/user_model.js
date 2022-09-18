@@ -1,6 +1,6 @@
 const pool = require('../config/mysql');
 
-const checkExit = async (email) => {
+const checkExist = async (email) => {
     try {
         const sql = `SELECT id FROM users WHERE email = ? AND status = 1`;
         const data = [email];
@@ -62,4 +62,4 @@ const getUserGroups = async (uid) => {
     }
 };
 
-module.exports = { signUp, signIn, checkExit, getUserGroupRole, getUserGroups };
+module.exports = { signUp, signIn, checkExist, getUserGroupRole, getUserGroups };

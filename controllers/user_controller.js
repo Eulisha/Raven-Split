@@ -10,11 +10,11 @@ const signUp = async (req, res) => {
     const { email, password, name, cellphone, provider } = req.body;
 
     //確認email是否存在
-    const checkExitResult = await User.checkExit(email);
-    if (!checkExitResult) {
-        return res.status(500).json({ err: checkExitResult });
+    const checkExistResult = await User.checkExist(email);
+    if (!checkExistResult) {
+        return res.status(500).json({ err: checkExistResult });
     }
-    if (checkExitResult.length !== 0) {
+    if (checkExistResult.length !== 0) {
         return res.status(403).json({ err: 'email already existed.' });
     }
 
@@ -118,5 +118,16 @@ const getUserGroups = async (req, res) => {
     }
     res.status(200).json({ data: groups });
 };
-
-module.exports = { signUp, signIn, getUserProfile, getUserGroups };
+const checkUserExist = async (req, res) => {
+    const email = req.query.email;
+    const [checkExistResult] = await User.checkExist(email);
+    if (!checkExistResult) {
+        return res.status(500).json({ err: checkExistResult });
+    }
+    if (checkExistResult.length === 0) {
+        return res.status(400).json({ err: 'User not exist.' });
+    }
+    console.log(checkExistResult);
+    res.status(200).json({ data: checkExistResult });
+};
+module.exports = { signUp, signIn, getUserProfile, getUserGroups, checkUserExist };
