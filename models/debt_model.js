@@ -58,11 +58,11 @@ const getDebtDetailTrx = async (conn, debtId) => {
     return result;
 };
 
-const createDebt = async (conn, debtMain) => {
-    console.info('@createDebt: debtMain : ', debtMain);
+const createDebt = async (conn, gid, debtMain) => {
+    console.info('@createDebt: gid,debtMain : ', gid, debtMain);
     try {
         const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
-        const data = [debtMain.gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
+        const data = [gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
         const [result] = await conn.execute(sql, data);
         let debtMainId = result.insertId;
         return debtMainId;
@@ -180,10 +180,12 @@ const deleteDebtBalance = async (conn, gid) => {
 const getUserBalances = async (uid) => {
     console.info(uid);
     try {
-        const sqlBorrow = 'SELECT gid, name, type, lender, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND borrower = ? ORDER by lender';
+        const sqlBorrow =
+            'SELECT gid, name, type, lender, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND borrower = ? ORDER by lender';
         const dataBorrow = [uid];
         const [resultBorrow] = await pool.execute(sqlBorrow, dataBorrow);
-        const sqlLend = 'SELECT gid, name, type, borrower, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND lender = ? ORDER by borrower';
+        const sqlLend =
+            'SELECT gid, name, type, borrower, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND lender = ? ORDER by borrower';
         const dataLend = [uid];
         const [resultLend] = await pool.execute(sqlLend, dataLend);
         return [resultBorrow, resultLend];

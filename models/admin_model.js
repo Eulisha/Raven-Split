@@ -26,8 +26,8 @@ const createMember = async (gid, uid, role) => {
         const sql = 'INSERT INTO group_users SET gid = ?, uid = ?, role = ?, status = ?';
         const data = [gid, uid, role, 1];
         const [result] = await pool.execute(sql, data);
-        const memberId = result.insertId;
-        return memberId;
+        const insertId = result.insertId;
+        return insertId;
     } catch (err) {
         console.error('ERROR AT createMember: ', err);
         return null;

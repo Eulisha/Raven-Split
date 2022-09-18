@@ -98,8 +98,8 @@ const updateBestPath = async (txc, debtsForUpdate) => {
         console.log('i am map ', debtsForUpdate);
         // return await session.writeTransaction(async (txc) => {
         const result = await txc.run(
-            'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = debt.amount', //改成直接算好set值
-            // 'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = r.amount + debt.amount',
+            // 'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = debt.amount', //改成直接算好set值
+            'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = r.amount + debt.amount',
             { debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
         );
         console.log('updatebestpath: ', result.summary.updateStatistics);

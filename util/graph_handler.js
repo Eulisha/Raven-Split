@@ -1,7 +1,7 @@
 const Graph = require('../models/graph_model');
 const { neo4j, driver } = require('../config/neo4j');
 
-const updateGraphEdge = async (txc, debtMain, debtDetail) => {
+const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
     console.log('@ function updateGraphEdge @');
     try {
         console.log('debtDetail', debtDetail);
@@ -13,7 +13,7 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
                 console.log(
                     'To Neo get curr new debt: ',
                     'gid',
-                    neo4j.int(debtMain.gid),
+                    neo4j.int(gid),
                     'borrower',
                     neo4j.int(debt.borrower),
                     'lender',
@@ -26,7 +26,7 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
         }
 
         //先查出原本的債務線
-        const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(debtMain.gid), neo4j.int(debtMain.lender), map);
+        const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);
         let newMap = [];
         getEdgeResult.records.forEach((oldDebt, ind) => {
             console.log('oldDebt: ', oldDebt);
@@ -46,7 +46,7 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
                     newBalance = -newBalance;
                     console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    Graph.deletePath(txc, neo4j.int(debtMain.gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
             } else {
                 // 原本債務關係和目前相反 borrower<-own-lender
@@ -60,13 +60,13 @@ const updateGraphEdge = async (txc, debtMain, debtDetail) => {
                     newBalance = -newBalance;
                     console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    Graph.deletePath(txc, neo4j.int(debtMain.gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
             }
         });
         //更新線
         // console.log('for Neo newMap:   ', newMap);
-        const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(debtMain.gid), newMap);
+        const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), newMap);
         // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
         return updateGraphEdgeesult;
     } catch (err) {
@@ -199,7 +199,8 @@ const getBestPath = async (txc, gid) => {
                         //將所有edge都減去瓶頸流量
                         path.forEach((edge) => {
                             graph[edge[0]][edge[1]] -= bottleneckValue;
-                            debtsForUpdate.push({ borrowerId: edge[0], lenderId: edge[1], adjust: -bottleneckValue });
+                            // debtsForUpdate.push({ borrowerId: edge[0], lenderId: edge[1], adjust: -bottleneckValue });
+                            debtsForUpdate.push({ borrower: neo4j.int(edge[0]), lender: neo4j.int(edge[1]), amount: neo4j.int(-bottleneckValue) });
                         });
                         // 3-3) 將流量先暫加到totalFlow
                         totalFlow += bottleneckValue;
@@ -211,8 +212,10 @@ const getBestPath = async (txc, gid) => {
                 if (totalFlow) {
                     // console.log('總ttlflow:', totalFlow);
                     graph[source.source][sink] += totalFlow;
-                    console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(graph[source.source][sink]));
-                    debtsForUpdate.push({ borrowerId: neo4j.int(source.source), lenderId: neo4j.int(sink), amount: neo4j.int(graph[source.source][sink]) });
+                    // console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(graph[source.source][sink]));
+                    // debtsForUpdate.push({ borrowerId: neo4j.int(source.source), lenderId: neo4j.int(sink), amount: neo4j.int(graph[source.source][sink]) });
+                    console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(totalFlow));
+                    debtsForUpdate.push({ borrower: neo4j.int(source.source), lender: neo4j.int(sink), amount: neo4j.int(totalFlow) });
                     // console.log('加流量：', graph);
                 }
             });

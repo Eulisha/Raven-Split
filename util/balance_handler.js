@@ -1,17 +1,17 @@
 const Debt = require('../models/debt_model');
 const pool = require('../config/mysql');
 
-const updateBalance = async (conn, debtMain, debtDetail) => {
+const updateBalance = async (conn, gid, debtMain, debtDetail) => {
     try {
-        console.log('@updatebalance@ main, detail: ', debtMain, debtDetail);
+        console.log('@updatebalance@ gid, main, detail: ', gid, debtMain, debtDetail);
         // 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
             //剔除自己的帳
-            if (debt.borrower===debtMain.lender){
-                continue
+            if (debt.borrower === debtMain.lender) {
+                continue;
             }
             //查正向 borrower-own->lender
-            const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debt.borrower, debtMain.lender);
+            const getBalanceResult = await Debt.getBalance(conn, gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
                 throw new Error('Internal Server Error');
             }
@@ -39,7 +39,7 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
                 }
             } else {
                 // 查反向 borrower <-own-lender
-                const getBalanceResult = await Debt.getBalance(conn, debtMain.gid, debtMain.lender, debt.borrower);
+                const getBalanceResult = await Debt.getBalance(conn, gid, debtMain.lender, debt.borrower);
                 if (!getBalanceResult) {
                     throw new Error('Internal Server Error');
                 }
@@ -67,7 +67,7 @@ const updateBalance = async (conn, debtMain, debtDetail) => {
                     }
                     //都沒查到，新增一筆
                 } else {
-                    const result = await Debt.createBalance(conn, debtMain.gid, debt.borrower, debtMain.lender, debt.amount);
+                    const result = await Debt.createBalance(conn, gid, debt.borrower, debtMain.lender, debt.amount);
                     if (!result) {
                         throw new Error('Internal Server Error');
                     }

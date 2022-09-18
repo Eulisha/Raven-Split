@@ -8,11 +8,12 @@ const Mapping = require('../config/mapping');
 const { updated_balance_graph } = require('../util/bundle_getter');
 
 const postDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== req.body.debt_main.gid || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
 
-    const debtMain = req.body.debt_main; //{gid, date, title, total, lender, split_method}
+    const gid = Number(req.params.id);
+    const debtMain = req.body.debt_main; //{date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
     console.log(debtMain);
 
@@ -22,7 +23,7 @@ const postDebt = async (req, res) => {
 
     try {
         //1) MYSQL 新增raw data
-        const debtMainId = await Debt.createDebt(conn, debtMain);
+        const debtMainId = await Debt.createDebt(conn, gid, debtMain);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -32,7 +33,7 @@ const postDebt = async (req, res) => {
         }
 
         //2-1) MYSQL balance table 加入新的帳
-        const updateBalanceResult = await updateBalance(conn, debtMain, debtDetail);
+        const updateBalanceResult = await updateBalance(conn, gid, debtMain, debtDetail);
         if (!updateBalanceResult) {
             throw new Error('Internal Server Error');
         }
@@ -40,7 +41,7 @@ const postDebt = async (req, res) => {
 
         await session.writeTransaction(async (txc) => {
             //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
-            const updateGraphEdgeesult = await updateGraphEdge(txc, debtMain, debtDetail);
+            const updateGraphEdgeesult = await updateGraphEdge(txc, gid, debtMain, debtDetail);
             if (!updateGraphEdgeesult) {
                 throw new Error('Internal Server Error');
             }
@@ -48,7 +49,7 @@ const postDebt = async (req, res) => {
             //TODO:處理沒有MATCH的狀況（不會跳error）
 
             //3)NEO4j取出所有路徑，並計算出最佳解
-            const [graph, debtsForUpdate] = await getBestPath(txc, debtMain.gid);
+            const [graph, debtsForUpdate] = await getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
@@ -65,7 +66,7 @@ const postDebt = async (req, res) => {
         session.close();
 
         // search update result from dbs just for refernce
-        const updateResult = await updated_balance_graph(debtMain.gid);
+        const updateResult = await updated_balance_graph(gid);
 
         res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
