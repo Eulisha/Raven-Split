@@ -26,7 +26,7 @@ const getDebts = async (req, res) => {
         //查借貸明細
         for (let debtMain of debtMainResult) {
             let debtMainId = debtMain.id;
-            let ownAmount;
+            let ownAmount = 0;
             let isOwned = false;
             let [debtDetailResult] = await Debt.getDebtDetail(debtMainId, uid);
             console.log('debtDetail:', debtDetailResult);
@@ -137,7 +137,7 @@ const getUserBalances = async (req, res) => {
             result[0].map((debt) => {
                 console.debug('debt borrow: ', debt);
                 if (!borrow[debt.lender]) {
-                    borrow[debt.lender] = { uid: debt.lender, pair: null, total: null, group_normal: [], group_buying: [] };
+                    borrow[debt.lender] = { uid: debt.lender, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
                 if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
                     //兩人分帳
@@ -146,7 +146,7 @@ const getUserBalances = async (req, res) => {
                     borrow[debt.lender]['total'] += debt.amount;
                 } else {
                     borrow[debt.lender]['total'] += debt.amount;
-                    group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+                    group = { gid: debt.gid, group_name: debt.group_name, amount: debt.amount };
                     if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
                         //一般分帳群
                         borrow[debt.lender]['group_normal'].push(group);
@@ -167,7 +167,7 @@ const getUserBalances = async (req, res) => {
             result[1].map((debt) => {
                 console.debug('debt lend: ', debt);
                 if (!lend[debt.borrower]) {
-                    lend[debt.borrower] = { uid: debt.borrower, pair: null, total: null, group_normal: [], group_buying: [] };
+                    lend[debt.borrower] = { uid: debt.borrower, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
                 if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
                     //兩人分帳
@@ -176,7 +176,7 @@ const getUserBalances = async (req, res) => {
                     lend[debt.borrower]['total'] += debt.amount;
                 } else {
                     lend[debt.borrower]['total'] += debt.amount;
-                    group = { gid: debt.gid, group_name: debt.name, amount: debt.amount };
+                    group = { gid: debt.gid, group_name: debt.group_name, amount: debt.amount };
                     if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
                         //一般分帳群
                         lend[debt.borrower]['group_normal'].push(group);

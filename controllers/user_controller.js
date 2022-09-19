@@ -15,7 +15,7 @@ const signUp = async (req, res) => {
         return res.status(500).json({ err: checkExistResult });
     }
     if (checkExistResult.length !== 0) {
-        return res.status(403).json({ err: 'email already existed.' });
+        return res.status(403).json({ err: 'Email already existed.' });
     }
 
     // 儲存前先hash密碼
@@ -120,7 +120,7 @@ const getUserInfo = async (req, res) => {
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
     if (signInResult.length === 0) {
-        return res.status(403).json({ err: 'Email not existed.' });
+        return res.status(403).json({ err: 'JWT invalid.' });
     }
 
     // get user-groups and roles

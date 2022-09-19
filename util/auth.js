@@ -29,7 +29,7 @@ const authentication = async (req, res, next) => {
     // verify JWT
     try {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
-        console.log('token decoded id: ', decodedUserInfo);
+        console.log('token decoded id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
             return res.status(403).json({ err: 'Forbidden' });
         }

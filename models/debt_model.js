@@ -181,11 +181,11 @@ const getUserBalances = async (uid) => {
     console.info(uid);
     try {
         const sqlBorrow =
-            'SELECT gid, name, type, lender, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND borrower = ? ORDER by lender';
+            'SELECT gid, `groups`.name AS group_name, type, lender, `users`.name AS user_name, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id LEFT JOIN `users` ON `users`.id = lender WHERE `groups`.status = 1 AND borrower = ? ORDER by lender';
         const dataBorrow = [uid];
         const [resultBorrow] = await pool.execute(sqlBorrow, dataBorrow);
         const sqlLend =
-            'SELECT gid, name, type, borrower, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id WHERE status = 1 AND lender = ? ORDER by borrower';
+            'SELECT gid, `groups`.name AS group_name, type, borrower, `users`.name AS user_name, amount from debt_balance LEFT JOIN `groups` ON debt_balance.gid = `groups`.id LEFT JOIN `users` ON `users`.id = borrower WHERE `groups`.status = 1 AND lender = ? ORDER by borrower';
         const dataLend = [uid];
         const [resultLend] = await pool.execute(sqlLend, dataLend);
         return [resultBorrow, resultLend];
