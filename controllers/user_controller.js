@@ -64,31 +64,32 @@ const signIn = async (req, res) => {
     if (signInResult.length === 0) {
         return res.status(403).json({ err: 'Email not existed.' });
     }
-
+    console.log('外面');
     // hash密碼來驗證
     try {
-        const hash = await bcrypt.compare(password, signInResult.password);
+        const hash = await bcrypt.compare(password, signInResult[0].password);
         if (!hash) {
             return res.status(403).json({ err: 'Password incorrect.' });
         }
     } catch (err) {
+        console.log(err);
         return res.status(500).json({ err: 'Hash fail.' });
     }
 
     // get user-groups and roles
-    const userGroups = await User.getUserGroups(signInResult.id);
+    const userGroups = await User.getUserGroups(signInResult[0].id);
     if (!userGroups) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
     //調整格式
     const user = {
-        id: signInResult.id,
-        email: signInResult.email,
-        name: signInResult.name,
-        cellphone: signInResult.cellphone,
-        picture: signInResult.picture,
-        provider: signInResult.provider,
+        id: signInResult[0].id,
+        email: signInResult[0].email,
+        name: signInResult[0].name,
+        cellphone: signInResult[0].cellphone,
+        picture: signInResult[0].picture,
+        provider: signInResult[0].provider,
     };
 
     // 生成token
