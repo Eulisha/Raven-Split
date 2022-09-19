@@ -271,12 +271,13 @@ const postSettle = async (req, res) => {
             let amount = record.get('amount').toNumber();
             let borrower = record.get('borrower').toNumber();
             let lender = record.get('lender').toNumber();
-            let debtMain = { gid, date, title, total: amount, lender, split_method: Mapping.SPLIT_METHOD.full_amount };
+            //因為是還錢所以debtMain的lender值為本來的borrower
+            let debtMain = { gid, date, title, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
             let debtId = await Debt.createDebt(conn, gid, debtMain);
             if (!debtId) {
                 throw new Error('Internal Server Error');
             }
-            let debtDetail = [{ borrower, amount }];
+            let debtDetail = [{ borrower: lender, amount }];
             await Debt.createDebtDetail(conn, debtId, debtDetail);
         }
         await Debt.deleteDebtBalance(conn, gid);
