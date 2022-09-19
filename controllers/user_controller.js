@@ -55,13 +55,13 @@ const signIn = async (req, res) => {
     const { email, password, provider } = req.body;
 
     //確認email是否存在
-    const [signInResult] = await User.signIn(email);
+    const signInResult = await User.signIn(email);
     console.debug(signInResult);
 
     if (!signInResult) {
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
-    if (signInResult === 0) {
+    if (signInResult.length === 0) {
         return res.status(403).json({ err: 'Email not existed.' });
     }
 
