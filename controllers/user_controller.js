@@ -110,7 +110,7 @@ const signIn = async (req, res) => {
 
 const getUserInfo = async (req, res) => {
     //JWT解出的token
-    let uid = req.user.email;
+    let email = req.user.email;
 
     //確認使用者是否存在(與signIn共用function)
     const signInResult = await User.signIn(email);

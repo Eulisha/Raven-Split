@@ -1,5 +1,5 @@
 const express = require('express');
-const { signUp, signIn, getUserProfile, getUserGroups, checkUserExist } = require('../controllers/user_controller');
+const { signUp, signIn, getUserGroups, checkUserExist, getUserInfo } = require('../controllers/user_controller');
 const { signUpRule, signInRule, validate } = require('../util/validate');
 const { authentication } = require('../util/auth');
 const userRoute = express.Router();
