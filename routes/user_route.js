@@ -6,7 +6,7 @@ const userRoute = express.Router();
 
 userRoute.post('/signup', signUpRule, validate, signUp);
 userRoute.post('/signin', signInRule, validate, signIn);
-userRoute.get('/profile', authentication, getUserProfile);
+userRoute.get('/userInfo', authentication, getUserInfo);
 userRoute.get('/groups', authentication, getUserGroups);
 userRoute.get('/user-exist', authentication, checkUserExist);
 
