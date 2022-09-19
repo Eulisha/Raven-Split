@@ -151,7 +151,7 @@ const deleteGroupDebts = async (conn, gid) => {
     }
 };
 const deleteDebt = async (conn, debtId, status) => {
-    console.info('@deleteDebt: gid status: ', debtId, status);
+    console.info('@deleteDebt: debtId status: ', debtId, status);
     try {
         const sql = 'UPDATE debt_main SET status = ? WHERE id = ?;'; //customer delete: 0 customer update: -1
         const data = [status, debtId];

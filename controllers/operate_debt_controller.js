@@ -111,7 +111,7 @@ const updateDebt = async (req, res) => {
         }
 
         //2) MYSQL create new raw data
-        const debtMainId = await Debt.createDebt(conn, debtMainNew);
+        const debtMainId = await Debt.createDebt(conn, gid, debtMainNew);
         if (!debtMainId) {
             throw new Error('Internal Server Error');
         }
@@ -126,11 +126,11 @@ const updateDebt = async (req, res) => {
         });
 
         //3) mysql update balance
-        const oldBalanceResult = await updateBalance(conn, debtMainOld, debtDetailOld);
+        const oldBalanceResult = await updateBalance(conn, gid, debtMainOld, debtDetailOld);
         if (!oldBalanceResult) {
             throw new Error('Internal Server Error');
         }
-        const newBalanceResult = await updateBalance(conn, debtMainNew, debtDetailNew);
+        const newBalanceResult = await updateBalance(conn, gid, debtMainNew, debtDetailNew);
         if (!newBalanceResult) {
             throw new Error('Internal Server Error');
         }
@@ -138,13 +138,13 @@ const updateDebt = async (req, res) => {
         //4)Neo4j update edge
         console.info('start neo4j');
         await session.writeTransaction(async (txc) => {
-            const oldEdgeesult = await updateGraphEdge(txc, debtMainOld, debtDetailOld);
-            const newEdgeesult = await updateGraphEdge(txc, debtMainNew, debtDetailNew);
+            const oldEdgeesult = await updateGraphEdge(txc, gid, debtMainOld, debtDetailOld);
+            const newEdgeesult = await updateGraphEdge(txc, gid, debtMainNew, debtDetailNew);
             console.debug('Neo4j更新線的結果：', oldEdgeesult);
             console.debug('Neo4j更新線的結果：', newEdgeesult);
 
             //5)算最佳解
-            const [graph, debtsForUpdate] = await getBestPath(txc, debtMainNew.gid);
+            const [graph, debtsForUpdate] = await getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
@@ -161,7 +161,7 @@ const updateDebt = async (req, res) => {
         session.close();
 
         // search update result from dbs just for refernce
-        const updateResult = updated_balance_graph(debtMainOld.gid);
+        const updateResult = updated_balance_graph(gid);
         res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
     } catch (err) {
         console.error('ERROR: ', err);
@@ -175,6 +175,7 @@ const deleteDebt = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
+    const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
 
     const conn = await pool.getConnection();
@@ -205,7 +206,7 @@ const deleteDebt = async (req, res) => {
             debtDetail[ind].amount = -ele.amount;
         });
         // 3-1) mysql update balance
-        const updateBalanceResult = await updateBalance(conn, debtMain[0], debtDetail); //這裡的debtDetail已經是amount為負的
+        const updateBalanceResult = await updateBalance(conn, gid, debtMain[0], debtDetail); //這裡的debtDetail已經是amount為負的
         if (!updateBalanceResult) {
             throw new Error('Internal Server Error');
         }
@@ -213,7 +214,7 @@ const deleteDebt = async (req, res) => {
         let debtsForUpdate;
         await session.writeTransaction(async (txc) => {
             // 3-2) Neo4j update edge
-            const updateGraphEdgeesult = await updateGraphEdge(txc, debtMain[0], debtDetail);
+            const updateGraphEdgeesult = await updateGraphEdge(txc, gid, debtMain[0], debtDetail);
             if (!updateGraphEdgeesult) {
                 throw new Error('Internal Server Error');
             }
@@ -221,7 +222,7 @@ const deleteDebt = async (req, res) => {
             //TODO:處理沒有MATCH的狀況（不會跳error）
 
             // 4) Neo4j get all path and calculate best path
-            [graph, debtsForUpdate] = await getBestPath(txc, debtMain[0].gid);
+            [graph, debtsForUpdate] = await getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
@@ -259,7 +260,7 @@ const postSettle = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     const gid = Number(req.params.id);
-    const { date, title } = req.body?.settle_main;
+    const { date, title } = req.body.settle_main;
     //群組全體結帳的狀況
     try {
         const result = await Graph.getGraph(gid);
@@ -271,7 +272,7 @@ const postSettle = async (req, res) => {
             let borrower = record.get('borrower').toNumber();
             let lender = record.get('lender').toNumber();
             let debtMain = { gid, date, title, total: amount, lender, split_method: Mapping.SPLIT_METHOD.full_amount };
-            let debtId = await Debt.createDebt(conn, debtMain);
+            let debtId = await Debt.createDebt(conn, gid, debtMain);
             if (!debtId) {
                 throw new Error('Internal Server Error');
             }
