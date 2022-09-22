@@ -45,13 +45,18 @@ const getGroupUsers = async (req, res) => {
     res.status(200).json({ data: members });
 };
 const updateGroup = async (req, res) => {
+    const gid = Number(req.params.id);
+    const group_name = req.body.group_name;
+    const group_type = req.body.group_type;
+    const groupUsers = req.body.groupUsers;
+    console.info('req body', group_name, group_type, groupUsers);
+
     try {
         if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
             return res.status(403).json({ err: 'No authorization.' });
         }
         console.log(req.body);
-        const gid = Number(req.params.id);
-        const group_name = req.body.group_name;
+
         const result = await Admin.updateGroup(gid, group_name);
         if (!result) {
             return res.status(500).json({ err: 'Internal Server Error' });

@@ -2,7 +2,7 @@ const pool = require('../config/mysql');
 
 const checkExist = async (email) => {
     try {
-        const sql = `SELECT id FROM users WHERE email = ? AND status = 1`;
+        const sql = `SELECT id, name FROM users WHERE email = ? AND status = 1`;
         const data = [email];
         const [result] = await pool.execute(sql, data);
         return result;

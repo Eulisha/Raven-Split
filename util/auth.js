@@ -31,12 +31,13 @@ const authentication = async (req, res, next) => {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
         console.log('token decoded id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
+            console.log('verifyJWT result:', decodedUserInfo);
             return res.status(403).json({ err: 'Forbidden' });
         }
         req.user = decodedUserInfo;
         return next();
     } catch (err) {
-        console.log(err);
+        console.log('verifyJWT result:', err);
         return res.status(403).json({ err: 'Forbidden' });
     }
 };
@@ -48,10 +49,11 @@ const authorization = async (req, res, next) => {
     console.log('uid, gid: ', uid, gid);
     const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
     if (!userGroupRole) {
+        console.log('getUserGroupRole result:', userGroupRole);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
     req.userGroupRole = userGroupRole;
-    console.debug(userGroupRole);
+    console.debug('getUserGroupRole result:', userGroupRole);
     next();
 };
 

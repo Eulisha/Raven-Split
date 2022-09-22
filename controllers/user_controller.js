@@ -150,12 +150,18 @@ const getUserGroups = async (req, res) => {
     res.status(200).json({ data: groups });
 };
 const checkUserExist = async (req, res) => {
+    console.log(req.query);
     const email = req.query.email;
+    if (!email || email === '') {
+        return res.status(400).json({ err: 'No email input.' });
+    }
     const [checkExistResult] = await User.checkExist(email);
     if (!checkExistResult) {
+        console.log('checkExist result:', checkExistResult);
         return res.status(500).json({ err: checkExistResult });
     }
     if (checkExistResult.length === 0) {
+        console.log('checkExist result:', checkExistResult, '=> User not exist.');
         return res.status(400).json({ err: 'User not exist.' });
     }
     console.log(checkExistResult);

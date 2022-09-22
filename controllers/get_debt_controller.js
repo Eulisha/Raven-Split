@@ -20,6 +20,7 @@ const getDebts = async (req, res) => {
     try {
         const [debtMainResult] = await Debt.getDebts(gid, pageSize, paging);
         if (!debtMainResult) {
+            console.error(debtMainResult);
             res.status(500).json({ err: 'Internal Server Error' });
         }
         console.log('debtMain:', debtMainResult);
@@ -33,6 +34,7 @@ const getDebts = async (req, res) => {
 
             //自己沒有參與這筆帳
             if (!debtDetailResult) {
+                //TODO:這邊邏輯要再檢查一下
                 debtDetailResult = {};
                 debtDetailResult.amount = 0;
             }
@@ -59,7 +61,7 @@ const getDebts = async (req, res) => {
         }
         res.status(200).json({ data: debtMainRecords });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         return res.status(500).json({ err });
     }
 };
@@ -70,9 +72,13 @@ const getDebtDetail = async (req, res) => {
     try {
         const debtMainId = req.params.debtId;
         const result = await Debt.getDebtDetail(debtMainId);
+        if (!result) {
+            console.error(result);
+            throw new Error('Internal Server Error');
+        }
         res.status(200).json({ data: result });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         return res.status(500).json({ err });
     }
 };
@@ -82,10 +88,36 @@ const getMeberBalances = async (req, res) => {
     }
     try {
         const gid = Number(req.params.id);
-        const result = await Debt.getAllBalances(gid);
-        return res.status(200).json({ data: result });
+        const groupUserIds = await Admin.getGroupUserIds(gid);
+        if (!groupUserIds) {
+            console.log(groupUserIds);
+            throw new Error('Internal Server Error');
+        }
+        const balances = await Debt.getAllBalances(gid); //{id, borrower, lender, amount}
+        if (!balances) {
+            console.log(balances);
+            throw new Error('Internal Server Error');
+        }
+        const balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
+
+        //把所有成員各自的object建好
+        for (let user of groupUserIds) {
+            balancesGroupByUser[user.uid] = { uid: user.uid, balance: null, detail: [] };
+        }
+        console.debug('initial object: ', balancesGroupByUser);
+        //group by uid
+        for (let balance of balances) {
+            //存borrower的
+            balancesGroupByUser[balance.borrower]['balance'] -= balance.amount;
+            balancesGroupByUser[balance.borrower]['detail'].push(balance);
+            //存lender的
+            balancesGroupByUser[balance.lender]['balance'] += balance.amount;
+            balancesGroupByUser[balance.lender]['detail'].push(balance);
+        }
+        console.info('balancesGroupByUser: ', balancesGroupByUser);
+        return res.status(200).json({ data: balancesGroupByUser });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         return res.status(500).json({ err });
     }
 };
@@ -99,9 +131,11 @@ const getSettle = async (req, res) => {
         const resultGetGraph = await Graph.getGraph(gid);
         console.warn(resultGetGraph);
         if (!resultGetGraph) {
+            console.error(resultGetGraph);
             throw new Error('Internal Server Error');
         }
         if (!resultGetGraph === 0) {
+            console.error(resultGetGraph);
             return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
         }
         const graph = resultGetGraph.records.map((record) => {
@@ -114,10 +148,10 @@ const getSettle = async (req, res) => {
         if (!resultSetSetting) {
             throw new Error('Internal Server Error');
         }
-        console.error(graph);
+        console.debug(graph);
         await res.status(200).json({ data: graph });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         return res.status(500).json({ err });
     }
 };
@@ -125,6 +159,10 @@ const getUserBalances = async (req, res) => {
     const uid = req.user.id;
     try {
         const result = await Debt.getUserBalances(uid); //同時撈borrow跟lend
+        if (!result) {
+            console.error(result);
+            throw new Error('Internal Server Error');
+        }
         let borrow = {};
         let lend = {};
         let data = {};

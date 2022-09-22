@@ -34,10 +34,23 @@ const createMember = async (gid, uid, role) => {
     }
 };
 
+const getGroupUserIds = async (gid) => {
+    console.log('@getGroupUserIds: gid:', gid);
+    try {
+        const sql = 'SELECT uid FROM group_users LEFT JOIN `users` ON `users`.id = group_users.uid WHERE group_users.gid = ? AND `users`.status = ?;';
+        const data = [gid, 1];
+        const [result] = await pool.execute(sql, data);
+        console.log(result);
+        return result;
+    } catch (err) {
+        console.error('ERROR AT getGroupUsers: ', err);
+        return null;
+    }
+};
+
 const getGroupUsers = async (gid) => {
     console.log('@getGroupUsers: gid:', gid);
     try {
-        console.log('gid: ', gid);
         const sql = 'SELECT uid, name, email FROM group_users LEFT JOIN `users` ON `users`.id = group_users.uid WHERE group_users.gid = ? AND `users`.status = ?;';
         const data = [gid, 1];
         const [result] = await pool.execute(sql, data);
@@ -87,4 +100,4 @@ const deleteMember = async (gid, uid) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getGroupUsers, updateGroup, setSettling, deleteMember };
+module.exports = { createGroup, createMember, getGroupUsers, getGroupUserIds, updateGroup, setSettling, deleteMember };
