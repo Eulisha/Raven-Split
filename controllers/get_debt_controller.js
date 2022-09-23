@@ -98,7 +98,7 @@ const getMeberBalances = async (req, res) => {
             console.log(balances);
             throw new Error('Internal Server Error');
         }
-        const balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
+        let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
 
         //把所有成員各自的object建好
         for (let user of groupUserIds) {
@@ -114,6 +114,7 @@ const getMeberBalances = async (req, res) => {
             balancesGroupByUser[balance.lender]['balance'] += balance.amount;
             balancesGroupByUser[balance.lender]['detail'].push(balance);
         }
+        balancesGroupByUser = Object.values(balancesGroupByUser);
         console.info('balancesGroupByUser: ', balancesGroupByUser);
         return res.status(200).json({ data: balancesGroupByUser });
     } catch (err) {
