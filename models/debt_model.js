@@ -104,7 +104,7 @@ const getAllBalances = async (gid) => {
 const getBalance = async (conn, gid, borrower, lender) => {
     console.info('@getBalance model: gid, borrower, lender : ', gid, borrower, lender);
     try {
-        const sql = 'SELECT id, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
+        const sql = 'SELECT id, lender, borrower, amount from debt_balance WHERE gid = ? AND lender = ? AND borrower = ?';
         const data = [gid, lender, borrower];
         const [result] = await conn.execute(sql, data);
         return result;
@@ -162,21 +162,32 @@ const deleteDebt = async (conn, debtId, status) => {
         return false;
     }
 };
-const deleteDebtBalance = async (conn, gid) => {
-    console.info('@deleteDebtBalance: gid : ', gid);
+const deleteDebtBalances = async (conn, gid) => {
+    console.info('@deleteDebtBalances: gid : ', gid);
     try {
-        console.log('groupId:', gid);
         const sql = 'DELETE FROM debt_balance WHERE gid = ?;';
         const data = [gid];
         const [result] = await conn.execute(sql, data);
         console.log(result);
         return true;
     } catch (err) {
+        console.error('ERROR AT deleteDebtBalances: ', err);
+        return false;
+    }
+};
+const deleteDebtBalance = async (conn, balanceId) => {
+    console.info('@deleteDebtBalances: balanceId : ', balanceId);
+    try {
+        const sql = 'DELETE FROM debt_balance WHERE id = ?;';
+        const data = [balanceId];
+        const [result] = await conn.execute(sql, data);
+        console.debug(result);
+        return true;
+    } catch (err) {
         console.error('ERROR AT deleteDebtBalance: ', err);
         return false;
     }
 };
-
 const getUserBalances = async (uid) => {
     console.info(uid);
     try {
@@ -224,6 +235,7 @@ module.exports = {
     createBalance,
     deleteGroupDebts,
     deleteDebt,
+    deleteDebtBalances,
     deleteDebtBalance,
     getUserBalances,
     createBatchBalance,

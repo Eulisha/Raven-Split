@@ -1,9 +1,9 @@
 const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 
-const updated_balance_graph = async (gid) => {
+const updatedBalanceGraph = async (gid) => {
     const balance = await Debt.getAllBalances(gid);
-    const resultGetGraph = await Graph.getGraph(gid);
+    const resultGetGraph = await Graph.getGraph(neo4j.int(gid));
     const graph = resultGetGraph.records.map((record) => {
         let amount = record.get('amount').toNumber();
         let borrower = record.get('borrower').toNumber();
@@ -12,4 +12,4 @@ const updated_balance_graph = async (gid) => {
     });
     return { balance, graph };
 };
-module.exports = { updated_balance_graph };
+module.exports = { updatedBalanceGraph };

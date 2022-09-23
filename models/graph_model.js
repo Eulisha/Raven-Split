@@ -3,31 +3,20 @@ const { neo4j, driver } = require('../config/neo4j');
 require('dotenv').config();
 
 //建立節點
-const createNodes = async (txc, gid, members) => {
+const createNodes = async (txc, gid, map) => {
     console.info('graph model: gid, members: ', gid, members);
-    const session = driver.session();
     try {
-        let map = [];
-
-        for (let member of members) {
-            // map.push({ name: neo4j.int(member.toSring()) }); //處理neo4j integer
-            map.push({ name: neo4j.int(member) }); //處理neo4j integer
-        }
-        return await session.writeTransaction(async (txc) => {
-            const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n:person)-[:member_of]->(m) SET n = members RETURN n', {
-                gid: neo4j.int(gid),
-                // gid: neo4j.int(toString(gid)),
-                members: map,
-            });
-            console.debug('createNodes: ', result.summary.updateStatistics);
-            return true;
+        const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n:person)-[:member_of]->(m) SET n = members RETURN n', {
+            gid,
+            members: map,
         });
+        console.debug('createNodes: ', result.summary.updateStatistics);
+        return true;
     } catch (err) {
         console.error('ERROR AT createNodes: ', err);
         return null;
     }
 };
-
 //查欠債關係線
 const getCurrEdge = async (txc, gid, lender, map) => {
     console.info('graph model: gid, lender, map: ', gid, lender, map);
@@ -44,23 +33,6 @@ const getCurrEdge = async (txc, gid, lender, map) => {
     } catch (err) {
         console.error('ERROR AT getCurrEdge: ', err);
         return null;
-    }
-};
-
-const deletePath = async (txc, gid, borrower, lender) => {
-    console.info('graph model: gid, borrower, lender:  ', gid, borrower, lender);
-    try {
-        const result = await txc.run(
-            'MATCH (g:group{name:$gid}) WITH g MATCH (n:person)-[:member_of]->(g) WHERE n.name = $borrower MATCH (m:person)-[:member_of]->(g) WHERE m.name = $lender WITH n, m MATCH (n)-[r:own]->(m) DELETE r RETURN r',
-            // 'MATCH (g:group{name:$gid}) WITH g MATCH (g)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g) WHERE n.name = $borrower AND m.name = lender DELETE r RETURN r',
-            { gid, borrower, lender }
-        );
-        // console.log('deletePath: ', result.records);
-        console.debug('deletePath: ', result.summary.updateStatistics);
-        return true;
-    } catch (err) {
-        console.error('ERROR AT deletePath: ', err);
-        return false;
     }
 };
 //更新新的線
@@ -102,12 +74,28 @@ const updateBestPath = async (txc, debtsForUpdate) => {
         return false;
     }
 };
-
-//刪除最佳解 //TODO:確認為何用session
-const deleteBestPath = async (session, groupId) => {
-    console.info('graph model: groupId:', groupId);
+//刪除單一線
+const deletePath = async (txc, gid, borrower, lender) => {
+    console.info('graph model: gid, borrower, lender:  ', gid, borrower, lender);
     try {
-        const result = await session.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: neo4j.int(groupId) });
+        const result = await txc.run(
+            'MATCH (g:group{name:$gid}) WITH g MATCH (n:person)-[:member_of]->(g) WHERE n.name = $borrower MATCH (m:person)-[:member_of]->(g) WHERE m.name = $lender WITH n, m MATCH (n)-[r:own]->(m) DELETE r RETURN r',
+            // 'MATCH (g:group{name:$gid}) WITH g MATCH (g)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g) WHERE n.name = $borrower AND m.name = lender DELETE r RETURN r',
+            { gid, borrower, lender }
+        );
+        // console.log('deletePath: ', result.records);
+        console.debug('deletePath: ', result.summary.updateStatistics);
+        return true;
+    } catch (err) {
+        console.error('ERROR AT deletePath: ', err);
+        return false;
+    }
+};
+//刪除整個圖(最佳解)
+const deleteBestPath = async (txc, gid) => {
+    console.info('graph model: gid:', gid);
+    try {
+        const result = await txc.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: gid });
         console.debug('deleteBestPath: ', result.summary.updateStatistics);
         return true;
     } catch (err) {
@@ -116,6 +104,7 @@ const deleteBestPath = async (session, groupId) => {
     }
 };
 
+//// BELOW ARE FOR BEST PATH USAGE
 //取得圖
 const getGraph = async (gid) => {
     const session = driver.session();
@@ -123,7 +112,7 @@ const getGraph = async (gid) => {
     try {
         const cypher =
             'MATCH (g:group{name:$name}) WITH g MATCH (g:group)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g:group)  RETURN n.name AS borrower, r.amount AS amount, m.name AS lender, g.name AS group';
-        const data = { name: neo4j.int(gid) };
+        const data = { name: gid };
         return await session.readTransaction(async (txc) => {
             const result = await txc.run(cypher, data);
             console.debug('getGraph: ', result.summary.updateStatistics);

@@ -129,7 +129,7 @@ const getSettle = async (req, res) => {
     const gid = Number(req.params.id);
     const uid = req.user.id;
     try {
-        const resultGetGraph = await Graph.getGraph(gid);
+        const resultGetGraph = await Graph.getGraph(neo4j.int(gid));
         console.warn(resultGetGraph);
         if (!resultGetGraph) {
             console.error(resultGetGraph);

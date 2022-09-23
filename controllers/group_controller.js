@@ -14,24 +14,43 @@ const createGroup = async (req, res) => {
     await conn.beginTransaction();
 
     //MySql建立group
-    const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
-    if (!groupResult) {
+    try {
+        const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
+        if (!groupResult) {
+            await conn.rollback();
+            await conn.release();
+            return res.status(500).json({ err: 'Internal Server Error' });
+        }
+        const gid = groupResult;
+        const memberIds = groupUsers.map((user) => {
+            return user.uid;
+        });
+        console.debug('to Neo:   ', gid, memberIds);
+
+        //Neo4j建立節點
+        let map = [];
+        for (let memberId of memberIds) {
+            // map.push({ name: neo4j.int(member.toSring()) }); //處理neo4j integer
+            map.push({ name: neo4j.int(memberId) }); //處理neo4j integer
+        }
+        const session = driver.session();
+        await session.writeTransaction(async (txc) => {
+            const graphResult = await Graph.createNodes(txc, neo4j.int(gid), map);
+            if (!graphResult) {
+                return res.status(500).json({ err: 'Internal Server Error' });
+            }
+        });
+        conn.commit();
+        await conn.release();
+        session.close();
+        res.status(200).json({ data: { gid } });
+    } catch (err) {
+        console.error('ERROR: ', err);
         await conn.rollback();
         await conn.release();
-        return res.status(500).json({ err: 'Internal Server Error' });
+        session.close();
+        return res.status(500).json({ err });
     }
-    const gid = groupResult;
-    const memberIds = groupUsers.map((user) => {
-        return user.uid;
-    });
-    console.log('to Neo:   ', gid, memberIds);
-    //Neo4j建立節點
-    const graphResult = await Graph.createNodes(gid, memberIds);
-    if (!graphResult) {
-        return res.status(500).json({ err: 'Internal Server Error' });
-    }
-    conn.commit();
-    res.status(200).json({ data: { gid } });
 };
 const getGroupUsers = async (req, res) => {
     console.log('@control getGroupUsers');
