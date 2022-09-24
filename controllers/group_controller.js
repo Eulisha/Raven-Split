@@ -1,3 +1,4 @@
+const { neo4j, driver } = require('../config/neo4j');
 const Admin = require('../models/admin_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
@@ -9,48 +10,50 @@ const createGroup = async (req, res) => {
     const groupUsers = req.body.groupUsers;
     console.info('req body', group_name, group_type, groupUsers);
 
-    //取得MySql連線
+    //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
     await conn.beginTransaction();
+    const session = driver.session();
+    await session.writeTransaction(async (txc) => {
+        //MySql建立group
+        try {
+            const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
+            if (!groupResult) {
+                console.error(groupResult);
+                throw new Error('Internal Server Error');
+            }
+            const gid = groupResult;
+            const memberIds = groupUsers.map((user) => {
+                return user.uid;
+            });
+            console.debug('to Neo:   ', gid, memberIds);
 
-    //MySql建立group
-    try {
-        const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
-        if (!groupResult) {
-            await conn.rollback();
-            await conn.release();
-            return res.status(500).json({ err: 'Internal Server Error' });
-        }
-        const gid = groupResult;
-        const memberIds = groupUsers.map((user) => {
-            return user.uid;
-        });
-        console.debug('to Neo:   ', gid, memberIds);
-
-        //Neo4j建立節點
-        let map = [];
-        for (let memberId of memberIds) {
-            // map.push({ name: neo4j.int(member.toSring()) }); //處理neo4j integer
-            map.push({ name: neo4j.int(memberId) }); //處理neo4j integer
-        }
-        const session = driver.session();
-        await session.writeTransaction(async (txc) => {
+            //Neo4j建立節點
+            let map = [];
+            for (let memberId of memberIds) {
+                // map.push({ name: neo4j.int(member.toSring()) }); //處理neo4j integer
+                map.push({ name: neo4j.int(memberId) }); //處理neo4j integer
+            }
             const graphResult = await Graph.createNodes(txc, neo4j.int(gid), map);
             if (!graphResult) {
-                return res.status(500).json({ err: 'Internal Server Error' });
+                console.error(graphResult);
+                throw new Error('Internal Server Error');
             }
-        });
-        conn.commit();
-        await conn.release();
-        session.close();
-        res.status(200).json({ data: { gid } });
-    } catch (err) {
-        console.error('ERROR: ', err);
-        await conn.rollback();
-        await conn.release();
-        session.close();
-        return res.status(500).json({ err });
-    }
+            //全部成功了，commit
+            conn.commit();
+            await txc.commit();
+            conn.release();
+            session.close();
+            return res.status(200).json({ data: { gid } });
+        } catch (err) {
+            console.error('ERROR: ', err);
+            await conn.rollback();
+            await txc.rollback();
+            conn.release();
+            session.close();
+            return res.status(500).json({ err });
+        }
+    });
 };
 const getGroupUsers = async (req, res) => {
     console.log('@control getGroupUsers');
@@ -61,7 +64,7 @@ const getGroupUsers = async (req, res) => {
     if (!members) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
-    res.status(200).json({ data: members });
+    return res.status(200).json({ data: members });
 };
 const updateGroup = async (req, res) => {
     const gid = Number(req.params.id);
@@ -92,10 +95,10 @@ const updateGroup = async (req, res) => {
             }
         }
 
-        res.status(200).json({ data: groupUserIds });
+        return res.status(200).json({ data: groupUserIds });
     } catch (err) {
         console.log(err);
-        res.status(500).json({ err: 'Internal Server Error' });
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
 const deleteMember = async (req, res) => {
@@ -108,7 +111,7 @@ const deleteMember = async (req, res) => {
     if (!result) {
         return res.status(500).json({ err: 'Internal Server Error' });
     }
-    res.status(200).json({ data: null });
+    return res.status(200).json({ data: null });
 };
 
 // 併到update裡面

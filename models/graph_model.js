@@ -4,7 +4,7 @@ require('dotenv').config();
 
 //建立節點
 const createNodes = async (txc, gid, map) => {
-    console.info('graph model: gid, members: ', gid, members);
+    console.info('graph model: gid, members: ', gid, map);
     try {
         const result = await txc.run('MERGE (m:group{name:$gid}) WITH m UNWIND $members AS members CREATE (n:person)-[:member_of]->(m) SET n = members RETURN n', {
             gid,
@@ -106,23 +106,19 @@ const deleteBestPath = async (txc, gid) => {
 
 //// BELOW ARE FOR BEST PATH USAGE
 //取得圖
-const getGraph = async (gid) => {
-    const session = driver.session();
+const getGraph = async (txc, gid) => {
     console.info('graph model: gid:', gid);
     try {
         const cypher =
             'MATCH (g:group{name:$name}) WITH g MATCH (g:group)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g:group)  RETURN n.name AS borrower, r.amount AS amount, m.name AS lender, g.name AS group';
         const data = { name: gid };
-        return await session.readTransaction(async (txc) => {
-            const result = await txc.run(cypher, data);
-            console.debug('getGraph: ', result.summary.updateStatistics);
-            return result;
-        });
+
+        const result = await txc.run(cypher, data);
+        console.debug('getGraph: ', result.summary.updateStatistics);
+        return result;
     } catch (err) {
         console.error('ERROR AT getGraph: ', err);
-        return null;
-    } finally {
-        session.close();
+        return false;
     }
 };
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
@@ -161,7 +157,7 @@ const sourceEdge = async (txc, gid, source) => {
 
 //查所有路徑
 const allPaths = async (txc, gid, currentSource, sinkNode) => {
-    console.info('grapgh model: gid, currentSource, sinkNode: ', gid, currentSource, sinkNode);
+    console.info('grapgh model: gid, currentSource, sinkNode(optional): ', gid, currentSource, sinkNode);
     try {
         let result;
         if (!sinkNode) {
@@ -173,6 +169,7 @@ const allPaths = async (txc, gid, currentSource, sinkNode) => {
                 }
             );
         } else {
+            //目前沒有用到這個條件
             result = await txc.run(
                 `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person{name: $name}) WHERE (n)-[:member_of]-> (:group{name:$gid}) RETURN path`, //查詢資料庫取出該source的所有路徑
                 {

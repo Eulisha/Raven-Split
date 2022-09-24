@@ -21,7 +21,7 @@ const getDebts = async (req, res) => {
         const [debtMainResult] = await Debt.getDebts(gid, pageSize, paging);
         if (!debtMainResult) {
             console.error(debtMainResult);
-            res.status(500).json({ err: 'Internal Server Error' });
+            return res.status(500).json({ err: 'Internal Server Error' });
         }
         console.log('debtMain:', debtMainResult);
         //查借貸明細
@@ -59,7 +59,7 @@ const getDebts = async (req, res) => {
             };
             debtMainRecords.push(debtMainRecord);
         }
-        res.status(200).json({ data: debtMainRecords });
+        return res.status(200).json({ data: debtMainRecords });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ err });
@@ -76,7 +76,7 @@ const getDebtDetail = async (req, res) => {
             console.error(result);
             throw new Error('Internal Server Error');
         }
-        res.status(200).json({ data: result });
+        return res.status(200).json({ data: result });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ err });
@@ -93,13 +93,14 @@ const getMeberBalances = async (req, res) => {
             console.log(groupUserIds);
             throw new Error('Internal Server Error');
         }
-        const balances = await Debt.getAllBalances(gid); //{id, borrower, lender, amount}
+        const conn = await pool.getConnection(); //配合其他route要使用get connection
+        const balances = await Debt.getAllBalances(conn, gid); //{id, borrower, lender, amount}
         if (!balances) {
             console.log(balances);
             throw new Error('Internal Server Error');
         }
-        let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
 
+        let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
         //把所有成員各自的object建好
         for (let user of groupUserIds) {
             balancesGroupByUser[user.uid] = { uid: user.uid, balance: null, detail: [] };
@@ -120,6 +121,8 @@ const getMeberBalances = async (req, res) => {
     } catch (err) {
         console.error(err);
         return res.status(500).json({ err });
+    } finally {
+        await conn.release();
     }
 };
 const getSettle = async (req, res) => {
@@ -150,7 +153,7 @@ const getSettle = async (req, res) => {
             throw new Error('Internal Server Error');
         }
         console.debug(graph);
-        await res.status(200).json({ data: graph });
+        return res.status(200).json({ data: graph });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ err });
@@ -228,10 +231,10 @@ const getUserBalances = async (req, res) => {
                 data.lend = Object.values(lend);
             });
         }
-        res.status(200).json({ data });
+        return res.status(200).json({ data });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ err: 'Internal Server Error.' });
+        return res.status(500).json({ err: 'Internal Server Error.' });
     }
 };
 

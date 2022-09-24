@@ -52,8 +52,13 @@ const authorization = async (req, res, next) => {
         console.log('getUserGroupRole result:', userGroupRole);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
-    req.userGroupRole = userGroupRole;
-    console.debug('getUserGroupRole result:', userGroupRole);
+    //沒查到role, 沒權限, 擋回
+    if (userGroupRole.length === 0) {
+        console.log('getUserGroupRole result:', userGroupRole);
+        return res.status(403).json({ err: 'No authorization.' });
+    }
+    req.userGroupRole = userGroupRole[0];
+    console.info('getUserGroupRole result:', userGroupRole);
     next();
 };
 

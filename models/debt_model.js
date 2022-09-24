@@ -88,13 +88,12 @@ const createDebtDetail = async (conn, debtMainId, debtDetail) => {
         return false;
     }
 };
-const getAllBalances = async (gid) => {
+const getAllBalances = async (conn, gid) => {
     console.info('@getAllBalances: gid : ', gid);
     try {
-        console.log('gid: ', gid);
         const sql = 'SELECT * from debt_balance WHERE gid = ?';
         const data = [gid];
-        const [result] = await pool.execute(sql, data);
+        const [result] = await conn.execute(sql, data);
         return result;
     } catch (err) {
         console.error('ERROR AT getAllBalance: ', err);

@@ -68,6 +68,10 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
         // console.log('for Neo newMap:   ', newMap);
         const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), newMap);
         // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
+        if (!updateGraphEdgeesult) {
+            console.error(updateGraphEdgeesult);
+            throw new Error('Internal Server Error');
+        }
         return updateGraphEdgeesult;
     } catch (err) {
         console.log(err);
@@ -133,7 +137,7 @@ const getBestPath = async (txc, gid) => {
                 //第三層：iterate edges in path
                 let edges = []; //組成path的碎片陣列
                 pathsResult.records[i]._fields[0].segments.forEach((edge) => {
-                    console.log(
+                    console.debug(
                         'From neo edge:  ',
                         'start:',
                         edge.start.properties.name.toNumber(),
@@ -157,7 +161,8 @@ const getBestPath = async (txc, gid) => {
                 // console.log('完整碎片組', edges);
             }
         }
-        // console.log('最終存好的graph: ', graph);
+        // console.debug(pathsStructure);
+        // console.debug('最終存好的graph: ', graph);
 
         // 3) calculate best path
         // 第一層：iterate sources by order
@@ -171,7 +176,7 @@ const getBestPath = async (txc, gid) => {
                 let totalFlow = 0; //用來存當圈要加到最短sounce-sink的流量
                 //第三層：iterate paths of source->sink
                 for (let path of pathsStructure[source.source].sinks[sink]) {
-                    // console.log('目前path', path);
+                    // console.debug('目前path', path);
                     let bottleneckValue = 0;
                     let pathBlock = false;
                     if (path.length !== 1) {
@@ -209,18 +214,19 @@ const getBestPath = async (txc, gid) => {
                     }
                 }
                 // 3-4) 將totalFlow加到最短的邊上
+                // console.debug('totalFlow', totalFlow);
                 if (totalFlow) {
                     // console.log('總ttlflow:', totalFlow);
                     graph[source.source][sink] += totalFlow;
                     // console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(graph[source.source][sink]));
                     // debtsForUpdate.push({ borrowerId: neo4j.int(source.source), lenderId: neo4j.int(sink), amount: neo4j.int(graph[source.source][sink]) });
-                    console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(totalFlow));
+                    // console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(totalFlow));
                     debtsForUpdate.push({ borrower: neo4j.int(source.source), lender: neo4j.int(sink), amount: neo4j.int(totalFlow) });
                     // console.log('加流量：', graph);
                 }
             });
         }
-        console.log(graph);
+        console.info('handler: best path graph debtsForUpdate:', graph, debtsForUpdate);
         return [graph, debtsForUpdate];
     } catch (err) {
         console.error('ERROR AT getBestPath: ', err);
