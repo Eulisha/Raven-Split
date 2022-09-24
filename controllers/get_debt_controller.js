@@ -86,6 +86,7 @@ const getMeberBalances = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
+    const conn = await pool.getConnection(); //配合其他route要使用get connection
     try {
         const gid = Number(req.params.id);
         const groupUserIds = await Admin.getGroupUserIds(gid);
@@ -93,7 +94,7 @@ const getMeberBalances = async (req, res) => {
             console.log(groupUserIds);
             throw new Error('Internal Server Error');
         }
-        const conn = await pool.getConnection(); //配合其他route要使用get connection
+
         const balances = await Debt.getAllBalances(conn, gid); //{id, borrower, lender, amount}
         if (!balances) {
             console.log(balances);
@@ -122,7 +123,7 @@ const getMeberBalances = async (req, res) => {
         console.error(err);
         return res.status(500).json({ err });
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 const getSettle = async (req, res) => {
