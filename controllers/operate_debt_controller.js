@@ -286,18 +286,20 @@ const postSettle = async (req, res) => {
                 let amount = record.get('amount').toNumber();
                 let borrower = record.get('borrower').toNumber();
                 let lender = record.get('lender').toNumber();
-                //因為是還錢所以debtMain的lender值為本來的borrower
-                let debtMain = { gid, date, title, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
-                let debtId = await Debt.createDebt(conn, gid, debtMain);
-                if (!debtId) {
-                    console.log(debtId);
-                    throw new Error('Internal Server Error');
-                }
-                let debtDetail = [{ borrower: lender, amount }];
-                const createDebtDetailResult = await Debt.createDebtDetail(conn, debtId, debtDetail);
-                if (!createDebtDetailResult) {
-                    console.log(createDebtDetailResult);
-                    throw new Error('Internal Server Error');
+                if (amount !== 0) {
+                    //因為是還錢所以debtMain的lender值為本來的borrower
+                    let debtMain = { gid, date, title, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
+                    let debtId = await Debt.createDebt(conn, gid, debtMain);
+                    if (!debtId) {
+                        console.log(debtId);
+                        throw new Error('Internal Server Error');
+                    }
+                    let debtDetail = [{ borrower: lender, amount }];
+                    const createDebtDetailResult = await Debt.createDebtDetail(conn, debtId, debtDetail);
+                    if (!createDebtDetailResult) {
+                        console.log(createDebtDetailResult);
+                        throw new Error('Internal Server Error');
+                    }
                 }
             }
             const deleteDebtBalancesResult = await Debt.deleteDebtBalances(conn, gid);
