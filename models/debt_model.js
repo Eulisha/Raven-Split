@@ -12,6 +12,18 @@ const getDebts = async (gid, pageSize, paging = 0) => {
     }
 };
 
+const getDebtCount = async (gid) => {
+    console.info('@getDebtPages: gid: ', gid);
+    try {
+        const sql = 'SELECT count(id) AS count FROM debt_main WHERE gid = ? AND status =1';
+        const data = [gid];
+        const [result] = await pool.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.error('ERROR AT getDebtPages: ', err);
+        return false;
+    }
+};
 //for update, delete internal back-end usage
 const getDebt = async (conn, debtId) => {
     console.info('@getDebt: debtId: ', debtId);
@@ -223,6 +235,7 @@ const createBatchBalance = async (gid, memberCombo, conn) => {
 
 module.exports = {
     getDebts,
+    getDebtCount,
     getDebt,
     getDebtDetail,
     getDebtDetailTrx,

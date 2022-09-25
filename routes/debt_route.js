@@ -1,12 +1,13 @@
 const express = require('express');
 const { postDebt, deleteDebt, updateDebt, postSettle, postSettlePair } = require('../controllers/operate_debt_controller');
-const { getDebts, getDebtDetail, getMeberBalances, getSettle, getUserBalances } = require('../controllers/get_debt_controller');
+const { getDebts, getDebtDetail, getMeberBalances, getSettle, getUserBalances, getDebtPages } = require('../controllers/get_debt_controller');
 const { authentication, authorization } = require('../util/auth');
 const debtRoute = express.Router();
 
 debtRoute.get('/debts/:id', authentication, authorization, getDebts);
 debtRoute.get('/balances/:id', authentication, authorization, getMeberBalances);
 debtRoute.get('/detail/:id/:debtId', authentication, authorization, getDebtDetail);
+debtRoute.get('/pages/:id', authentication, authorization, getDebtPages);
 debtRoute.get('/settle/:id', authentication, authorization, getSettle);
 debtRoute.post('/debt/:id', authentication, authorization, postDebt);
 debtRoute.post('/settle/:id', authentication, authorization, postSettle);

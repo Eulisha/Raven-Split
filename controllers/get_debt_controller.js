@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const pool = require('../config/mysql');
@@ -14,7 +15,7 @@ const getDebts = async (req, res) => {
 
     const gid = Number(req.params.id);
     const uid = req.user.id;
-    const paging = Number(req.query.paging) || 0;
+    const paging = Number(req.query.paging) - 1 || 0;
     const debtMainRecords = [];
     //撈所有該群組內的帳
     try {
@@ -59,6 +60,7 @@ const getDebts = async (req, res) => {
             };
             debtMainRecords.push(debtMainRecord);
         }
+
         return res.status(200).json({ data: debtMainRecords });
     } catch (err) {
         console.error(err);
@@ -82,6 +84,29 @@ const getDebtDetail = async (req, res) => {
         return res.status(500).json({ err });
     }
 };
+const getDebtPages = async (req, res) => {
+    console.info('@getDebtPages control:', req.params);
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
+    const gid = Number(req.params.id);
+
+    try {
+        //查paging
+        const count = await Debt.getDebtCount(gid);
+        if (!count) {
+            console.error(count);
+            return res.status(500).json({ err: 'Internal Server Error' });
+        }
+        const pageCount = Math.ceil(count[0].count / Number(pageSize));
+        console.info('controller count, pageCount: ', count, count.count, pageSize, pageCount);
+        return res.status(200).json({ data: { pageCount } });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ err });
+    }
+};
+
 const getMeberBalances = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
@@ -250,4 +275,4 @@ const getUserBalances = async (req, res) => {
     }
 };
 
-module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, getUserBalances };
+module.exports = { getDebts, getDebtDetail, getDebtDetail, getDebtPages, getMeberBalances, getSettle, getUserBalances };
