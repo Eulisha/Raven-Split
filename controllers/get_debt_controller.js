@@ -8,7 +8,7 @@ const Mapping = require('../config/mapping');
 
 const getDebts = async (req, res) => {
     console.log('@getDebts control:', req.params);
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
 
@@ -66,7 +66,7 @@ const getDebts = async (req, res) => {
     }
 };
 const getDebtDetail = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     try {
@@ -83,7 +83,7 @@ const getDebtDetail = async (req, res) => {
     }
 };
 const getMeberBalances = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const conn = await pool.getConnection(); //配合其他route要使用get connection
@@ -127,7 +127,7 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
@@ -240,33 +240,3 @@ const getUserBalances = async (req, res) => {
 };
 
 module.exports = { getDebts, getDebtDetail, getDebtDetail, getMeberBalances, getSettle, getUserBalances };
-
-// let borrow = { uid1: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] },
-//                  uid2: { uid: null, total: null, pair: null, group_noraml: [], group_buying: [] }
-//                 };
-
-//     constdebt = {
-//         borrow: [
-//             {
-//                 uid: 1,
-//                 total: 1000,
-//                 pair: 500,
-//                 groups: [
-//                     { gid: 10, group_name: 'A', amount: 300 },
-//                     { gid: 15, group_name: 'B', amount: 200 },
-//                 ],
-//             },
-//         ],
-//         lend: [
-//             {
-//                 uid: 2,
-//                 total: 500,
-//                 pair: 100,
-//                 groups: [
-//                     { gid: 20, group_name: 'C', amount: 200 },
-//                     { gid: 25, group_name: 'B', amount: 200 },
-//                 ],
-//             },
-//         ],
-//     };
-// }

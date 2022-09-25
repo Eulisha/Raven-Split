@@ -262,7 +262,7 @@ const deleteDebt = async (req, res) => {
 };
 
 const postSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     console.log('controller: body:', req.body);
