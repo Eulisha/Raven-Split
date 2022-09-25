@@ -124,10 +124,10 @@ const getGraph = async (txc, gid) => {
 // TODO: [優化] 可以改成 MATCH (m:person) <- [:own] - (n:person) - [:member_of] -> (:group{name:31}) RETURN n, m 整併兩個query
 //查詢圖中所有node
 const allNodes = async (txc, gid) => {
-    console.info('graph model: gid: ', gid);
+    // console.info('graph model: gid: ', gid);
     try {
-        const result = await txc.run('MATCH (n:person)-[:member_of]-> (:group{name:$gid}) RETURN n.name AS name', { gid });
-        console.debug('allNodes: ', result.summary.updateStatistics);
+        const result = await txc.run('MATCH (n:person)-[:belong_to]-> (:group{name:$gid}) RETURN n.name AS name', { gid });
+        // console.debug('allNodes: ', result.summary.updateStatistics);
         return result;
     } catch (err) {
         console.error('ERROR AT allNodes: ', err);
@@ -137,17 +137,17 @@ const allNodes = async (txc, gid) => {
 
 //查每個source出去的edge數量
 const sourceEdge = async (txc, gid, source) => {
-    console.info('graph model: gid, source:', gid, source);
+    // console.info('graph model: gid, source:', gid, source);
     try {
         // const result = await session.run(`MATCH (n:person{name:$name})-[r]->(m:person) RETURN m,r`, {
         const result = await txc.run(
-            'MATCH (:group{name:$gid})<-[:member_of]-(n:person{name:$lender})-[:own]->(m:person)-[:member_of]->(:group{name:$gid}) RETURN m.name AS name',
+            'MATCH (:group{name:$gid})<-[:belong_to]-(n:person{name:$lender})-[:own]->(m:person)-[:belong_to]->(:group{name:$gid}) RETURN m.name AS name',
             {
                 gid,
                 lender: source,
             }
         );
-        console.debug('sourceEdge: ', result.summary.updateStatistics);
+        // console.debug('sourceEdge: ', result.summary.updateStatistics);
         return result;
     } catch (err) {
         console.error('ERROR AT sourceEdge: ', err);
@@ -157,29 +157,29 @@ const sourceEdge = async (txc, gid, source) => {
 
 //查所有路徑
 const allPaths = async (txc, gid, currentSource, sinkNode) => {
-    console.info('grapgh model: gid, currentSource, sinkNode(optional): ', gid, currentSource, sinkNode);
+    // console.info('grapgh model: gid, currentSource, sinkNode(optional): ', gid, currentSource, sinkNode);
     try {
         let result;
         if (!sinkNode) {
             result = await txc.run(
-                `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person) WHERE (n)-[:member_of]-> (:group{name:$gid}) RETURN path`, //查詢資料庫取出該source的所有路徑
+                `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person) WHERE (n)-[:belong_to]-> (:group{name:$gid}) RETURN path`, //查詢資料庫取出該source的所有路徑
                 {
                     name: currentSource,
                     gid,
                 }
             );
-        } else {
-            //目前沒有用到這個條件
-            result = await txc.run(
-                `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person{name: $name}) WHERE (n)-[:member_of]-> (:group{name:$gid}) RETURN path`, //查詢資料庫取出該source的所有路徑
-                {
-                    name: currentSource,
-                    gid,
-                    name: sinkNode,
-                }
-            );
+            // } else {
+            //     //目前沒有用到這個條件
+            //     result = await txc.run(
+            //         `MATCH path = (n:person {name: $name})-[:own*..10]->(m:person{name: $name}) WHERE (n)-[:member_of]-> (:group{name:$gid}) RETURN path`, //查詢資料庫取出該source的所有路徑
+            //         {
+            //             name: currentSource,
+            //             gid,
+            //             name: sinkNode,
+            //         }
+            //     );
         }
-        console.debug('allPaths: ', result.summary.updateStatistics);
+        // console.debug('allPaths: ', result.summary.updateStatistics);
         return result;
     } catch (err) {
         console.error('ERROR AT allPaths: ', err);
