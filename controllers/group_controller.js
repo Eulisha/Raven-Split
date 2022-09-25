@@ -74,7 +74,7 @@ const updateGroup = async (req, res) => {
     console.info('req body', group_name, group_type, groupUsers);
 
     try {
-        if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
+        if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
             return res.status(403).json({ err: 'No authorization.' });
         }
         console.log(req.body);
@@ -113,19 +113,5 @@ const deleteMember = async (req, res) => {
     }
     return res.status(200).json({ data: null });
 };
-
-// 併到update裡面
-// const createMember = async (req, res) => {
-//     if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
-//         return res.status(403).json({ err: 'No authorization.' });
-//     }
-//     const groupId = req.params.gid;
-//     const uid = req.body.uid;
-//     const memberId = await Admin.createMember(groupId, uid, role);
-//     if (!memberId) {
-//         return res.status(500).json({ err: 'Internal Server Error' });
-//     }
-//     res.status(200).json({ data: { memberId } });
-// };
 
 module.exports = { createGroup, getGroupUsers, updateGroup, deleteMember };
