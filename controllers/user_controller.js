@@ -155,7 +155,7 @@ const checkUserExist = async (req, res) => {
     if (!email || email === '') {
         return res.status(400).json({ err: 'No email input.' });
     }
-    const [checkExistResult] = await User.checkExist(email);
+    const checkExistResult = await User.checkExist(email);
     if (!checkExistResult) {
         console.log('checkExist result:', checkExistResult);
         return res.status(500).json({ err: checkExistResult });
@@ -164,7 +164,7 @@ const checkUserExist = async (req, res) => {
         console.log('checkExist result:', checkExistResult, '=> User not exist.');
         return res.status(400).json({ err: 'User not exist.' });
     }
-    console.log(checkExistResult);
-    res.status(200).json({ data: checkExistResult });
+    console.log(checkExistResult[0]);
+    res.status(200).json({ data: checkExistResult[0] });
 };
 module.exports = { signUp, signIn, getUserInfo, getUserGroups, checkUserExist };

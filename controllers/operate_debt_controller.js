@@ -276,9 +276,9 @@ const postSettle = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
-            const result = await Graph.getGraph(neo4j.int(gid));
+            const result = await Graph.getGraph(txc, neo4j.int(gid));
             if (result.records.length === 0) {
-                await conn.release();
+                conn.release();
                 session.close();
                 return res.status(400).json({ err: 'No matched result' });
             }

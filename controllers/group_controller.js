@@ -77,7 +77,6 @@ const updateGroup = async (req, res) => {
         if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
             return res.status(403).json({ err: 'No authorization.' });
         }
-        console.log(req.body);
 
         const result = await Admin.updateGroup(gid, group_name);
         if (!result) {
@@ -85,14 +84,16 @@ const updateGroup = async (req, res) => {
         }
 
         let groupUserIds = [];
-        for (let i = 0; i < req.body.groupUsers; i++) {
-            const uid = user.uid;
-            const role = user.role;
+        for (let i = 0; i < req.body.groupUsers.length; i++) {
+            const uid = groupUsers[i].uid;
+            const role = groupUsers[i].role;
+            console.log(uid, role);
             const insertId = await Admin.createMember(gid, uid, role);
-            groupUserIds.push(insertId);
-            if (!memberId) {
+            if (!insertId) {
                 return res.status(500).json({ err: 'Internal Server Error' });
             }
+            console.log(insertId);
+            groupUserIds.push(insertId);
         }
 
         return res.status(200).json({ data: groupUserIds });
