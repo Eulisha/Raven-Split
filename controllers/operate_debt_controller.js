@@ -343,6 +343,9 @@ const postSettle = async (req, res) => {
 };
 
 const postSettlePair = async (req, res) => {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
     const { date, title } = req.body.settle_main;
     const gid = Number(req.params.id);
     const uid1 = Number(req.params.uid1);
@@ -498,7 +501,32 @@ const postSettlePair = async (req, res) => {
         }
     });
 };
+const postSettleDone = async (req, res) => {
+    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        return res.status(403).json({ err: 'No authorization.' });
+    }
+    const uid = req.user.id;
+    const gid = Number(req.params.id);
+    console.log('controller: uid, gid:', uid, gid);
 
+    //取得MySql&Neo連線並開始transaction
+    const conn = await pool.getConnection();
+    try {
+        //結束settle, 更新狀態
+        const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+        if (!resultSetSetting) {
+            console.error('settle done result: ', resultSetSetting);
+            throw new Error('Internal Server Error');
+        }
+        console.log('settle done result: ', resultSetSetting);
+        return res.status(200).json({ data: null });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ err });
+    } finally {
+        conn.release();
+    }
+};
 const postSettlePairAll = async (req, res) => {
     // 1) MySql get balance of this pair
     // 1-1) TODO:get pair balance in all groups
@@ -519,4 +547,4 @@ const postSettlePairAll = async (req, res) => {
     // search update result from dbs just for refernce
 };
 
-module.exports = { postDebt, updateDebt, deleteDebt, postSettle, postSettlePair };
+module.exports = { postDebt, updateDebt, deleteDebt, postSettle, postSettlePair, postSettleDone };

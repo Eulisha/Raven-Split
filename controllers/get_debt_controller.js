@@ -129,7 +129,7 @@ const getMeberBalances = async (req, res) => {
         let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
         //把所有成員各自的object建好
         for (let user of groupUserIds) {
-            balancesGroupByUser[user.uid] = { uid: user.uid, balance: null, detail: [] };
+            balancesGroupByUser[user.uid] = { uid: user.uid, balance: 0, detail: [] };
         }
         console.debug('initial object: ', balancesGroupByUser);
         //group by uid
