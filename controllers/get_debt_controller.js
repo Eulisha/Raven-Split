@@ -34,7 +34,7 @@ const getDebts = async (req, res) => {
 
             //自己沒有參與這筆帳
             if (!debtDetailResult) {
-                //TODO:這邊邏輯要再檢查一下
+                isOwned = null;
                 debtDetailResult = {};
                 debtDetailResult.amount = 0;
             }
