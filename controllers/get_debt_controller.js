@@ -132,33 +132,39 @@ const getSettle = async (req, res) => {
     }
     const gid = Number(req.params.id);
     const uid = req.user.id;
-    try {
-        const resultGetGraph = await Graph.getGraph(neo4j.int(gid));
-        console.warn(resultGetGraph);
-        if (!resultGetGraph) {
-            console.error(resultGetGraph);
-            throw new Error('Internal Server Error');
+    const session = driver.session();
+    await session.readTransaction(async (txc) => {
+        try {
+            const resultGetGraph = await Graph.getGraph(txc, neo4j.int(gid));
+            if (!resultGetGraph) {
+                console.error(resultGetGraph);
+                throw new Error('Internal Server Error');
+            }
+            if (!resultGetGraph === 0) {
+                console.error(resultGetGraph);
+                session.close();
+                return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
+            }
+            const graph = resultGetGraph.records.map((record) => {
+                let amount = record.get('amount').toNumber();
+                let borrower = record.get('borrower').toNumber();
+                let lender = record.get('lender').toNumber();
+                return { borrower, lender, amount };
+            });
+            const resultSetSetting = await Admin.setSettling(gid, uid);
+            if (!resultSetSetting) {
+                throw new Error('Internal Server Error');
+            }
+            console.debug('controller getSettle graph: ', graph);
+
+            // session.close();
+            return res.status(200).json({ data: graph });
+        } catch (err) {
+            console.error(err);
+            // session.close();
+            return res.status(500).json({ err });
         }
-        if (!resultGetGraph === 0) {
-            console.error(resultGetGraph);
-            return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
-        }
-        const graph = resultGetGraph.records.map((record) => {
-            let amount = record.get('amount').toNumber();
-            let borrower = record.get('borrower').toNumber();
-            let lender = record.get('lender').toNumber();
-            return { borrower, lender, amount };
-        });
-        const resultSetSetting = await Admin.setSettling(gid, uid);
-        if (!resultSetSetting) {
-            throw new Error('Internal Server Error');
-        }
-        console.debug(graph);
-        return res.status(200).json({ data: graph });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ err });
-    }
+    });
 };
 const getUserBalances = async (req, res) => {
     const uid = req.user.id;
@@ -171,6 +177,7 @@ const getUserBalances = async (req, res) => {
         let borrow = {};
         let lend = {};
         let data = {};
+        let summary = { borrow: 0, lend: 0, net: 0 };
         console.debug('getUserBalances result: ', result);
 
         //borrow: 我跟lender借錢
@@ -179,6 +186,7 @@ const getUserBalances = async (req, res) => {
         } else {
             result[0].map((debt) => {
                 console.debug('debt borrow: ', debt);
+                summary.borrow += debt.amount;
                 if (!borrow[debt.lender]) {
                     borrow[debt.lender] = { uid: debt.lender, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
@@ -209,6 +217,7 @@ const getUserBalances = async (req, res) => {
         } else {
             result[1].map((debt) => {
                 console.debug('debt lend: ', debt);
+                summary.lend += debt.amount;
                 if (!lend[debt.borrower]) {
                     lend[debt.borrower] = { uid: debt.borrower, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
@@ -232,6 +241,8 @@ const getUserBalances = async (req, res) => {
                 data.lend = Object.values(lend);
             });
         }
+        summary.net = summary.lend - summary.borrow;
+        data.summary = summary;
         return res.status(200).json({ data });
     } catch (err) {
         console.error(err);
