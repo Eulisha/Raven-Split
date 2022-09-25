@@ -265,10 +265,11 @@ const postSettle = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    console.log('controller: body:', req.body);
 
+    const uid = req.user.id;
     const gid = Number(req.params.id);
     const { date, title } = req.body.settle_main;
+    console.log('controller: uid, gid, data, title:', uid, gid, data, title);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -278,8 +279,13 @@ const postSettle = async (req, res) => {
         try {
             const result = await Graph.getGraph(txc, neo4j.int(gid));
             if (result.records.length === 0) {
+                //res之前要先把settle鎖拿掉
+                const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+                if (!resultSetSetting) {
+                    throw new Error('Internal Server Error');
+                }
+                await conn.rollback();
                 conn.release();
-                session.close();
                 return res.status(400).json({ err: 'No matched result' });
             }
             for (let record of result.records) {
@@ -314,6 +320,12 @@ const postSettle = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
 
+            //結束settle, 更新狀態
+            const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+            if (!resultSetSetting) {
+                throw new Error('Internal Server Error');
+            }
+
             await conn.commit();
             await txc.commit();
             conn.release();
@@ -335,6 +347,8 @@ const postSettlePair = async (req, res) => {
     const gid = Number(req.params.id);
     const uid1 = Number(req.params.uid1);
     const uid2 = Number(req.params.uid2);
+    const uid = req.user.id;
+    console.log('controller: uid, uid1, uid2, gid, data, title:', uid, uid1, uid2, gid, date, title);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -351,11 +365,6 @@ const postSettlePair = async (req, res) => {
             console.debug(balances);
             let pairBalance = {};
             for (let i = 0; i < balances.length; i++) {
-                // console.log(`第${i}圈`);
-                // console.debug(balances[i].borrower, balances[i].lender, uid1, uid2);
-                // console.debug(balances[i].borrower === uid1, balances[i].lender === uid2);
-                // console.debug(balances[i].borrower === uid2, balances[i].lender === uid1);
-
                 if ((balances[i].borrower === uid1 && balances[i].lender === uid2) || (balances[i].borrower === uid2 && balances[i].lender === uid1)) {
                     pairBalance = balances[i];
                     balances.splice(i, 1); //將balances內該筆刪除，供後面Neo建立graph使用
@@ -366,10 +375,18 @@ const postSettlePair = async (req, res) => {
 
             if (!pairBalance.id) {
                 //找不到, 代表沒有債務關係
-                console.error(pairBalance);
+                console.error('pariBalance result: ', pairBalance);
+
+                //res之前要先把settle鎖拿掉
+                const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+                if (!resultSetSetting) {
+                    console.error('settle done result: ', resultSetSetting);
+                    throw new Error('Internal Server Error');
+                }
+                await conn.rollback();
                 await conn.release();
-                session.close();
-                return res.status(400).json({ data: 'No Debt Relationship.' });
+                // session.close();
+                return res.status(400).json({ err: 'No Debt Relationship.' });
             }
 
             // 2) MySql create debt as settle
@@ -403,12 +420,11 @@ const postSettlePair = async (req, res) => {
             // 4-1) regen Neo4j
             // 4-1-1) create group on Neo4j
             // 4-1-1-1) get group users
-            const getGroupUserIds = await Admin.getGroupUserIds(gid); //TODO: 需要select for update?
-            if (!getGroupUserIds) {
-                console.error(getGroupUserIds);
-                throw new Error('Internal Server Error');
-            }
-            // 上面只會刪除關係線，所以不需要建新群組
+            // const getGroupUserIds = await Admin.getGroupUserIds(gid);
+            // if (!getGroupUserIds) {
+            //     console.error(getGroupUserIds);
+            //     throw new Error('Internal Server Error');
+            // }
             // // 4-1-1-2) create group
             // //Neo4j建立節點
             // let map = [];
@@ -422,9 +438,11 @@ const postSettlePair = async (req, res) => {
             // }
 
             // 4-1-2) updateEdge on Neo4j
+            // 上面只會刪除關係線，所以不需要建新群組
             // 把前面已經刪除settle完pair balance剩下的balances拿去畫圖
-            // 先處理neo的數字
+
             let newMap = balances.map((balance) => {
+                // 處理neo的數字
                 return {
                     borrower: neo4j.int(balance.borrower),
                     lender: neo4j.int(balance.lender),
@@ -455,6 +473,14 @@ const postSettlePair = async (req, res) => {
 
             // search update result from dbs just for refernce
             const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
+
+            //結束settle, 更新狀態
+            const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+            if (!resultSetSetting) {
+                console.error('settle done result: ', resultSetSetting);
+                throw new Error('Internal Server Error');
+            }
+            console.log('settle done result: ', resultSetSetting);
 
             //全部成功，MySQL做commit
             await conn.commit();

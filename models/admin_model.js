@@ -87,10 +87,21 @@ const setSettling = async (gid, uid) => {
         return null;
     }
 };
+const setSettleDone = async (conn, gid, uid) => {
+    console.log('@setSettling: gid, uid:', gid, uid);
+    try {
+        const sql = 'UPDATE `group_users` SET is_settling = 0 WHERE gid = ? AND uid = ?';
+        const data = [gid, uid];
+        await conn.execute(sql, data);
+        return true;
+    } catch (err) {
+        console.error('ERROR AT setSettler: ', err);
+        return null;
+    }
+};
 const deleteMember = async (gid, uid) => {
     console.log('@deleteMember: gid,uid: ', gid, uid);
     try {
-        console.log(gid, uid);
         const sql = 'UPDATE group_users SET status = 0 WHERE gid = ? AND uid = ?';
         const data = [gid, uid];
         await pool.execute(sql, data);
@@ -100,4 +111,16 @@ const deleteMember = async (gid, uid) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getGroupUsers, getGroupUserIds, updateGroup, setSettling, deleteMember };
+const checkGroupStatus = (gid) => {
+    console.log('gid: ', gid);
+    try {
+        const sql = 'SELECT uid, name FROM `group_users` LEFT JOIN `users` ON `group_users`.uid = `users`.id WHERE gid = ? AND is_settling = 1';
+        const data = [gid];
+        const result = pool.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.error('ERROR AT checkGroupStatus: ', err);
+        return null;
+    }
+};
+module.exports = { createGroup, createMember, getGroupUsers, getGroupUserIds, updateGroup, setSettling, setSettleDone, deleteMember, checkGroupStatus };
