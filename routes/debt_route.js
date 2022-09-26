@@ -9,7 +9,7 @@ debtRoute.get('/debts/:id', authentication, authorization, getDebts);
 debtRoute.get('/balances/:id', authentication, authorization, getMeberBalances);
 debtRoute.get('/detail/:id/:debtId', authentication, authorization, getDebtDetail);
 debtRoute.get('/pages/:id', authentication, authorization, getDebtPages);
-debtRoute.get('/settle/:id', authentication, authorization, getSettle);
+debtRoute.get('/settle/:id', authentication, checkIfOnSettling, authorization, getSettle);
 debtRoute.post('/debt/:id', authentication, checkIfOnSettling, authorization, postDebt);
 debtRoute.post('/settle/:id', authentication, checkIfOnSettling, authorization, postSettle);
 debtRoute.post('/settle-pair/:id/:uid1/:uid2', authentication, checkIfOnSettling, authorization, postSettlePair);

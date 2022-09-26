@@ -176,6 +176,7 @@ const getSettle = async (req, res) => {
                 let lender = record.get('lender').toNumber();
                 return { borrower, lender, amount };
             });
+
             const resultSetSetting = await Admin.setSettling(gid, uid);
             if (!resultSetSetting) {
                 throw new Error('Internal Server Error');

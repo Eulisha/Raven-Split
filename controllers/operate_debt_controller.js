@@ -269,7 +269,7 @@ const postSettle = async (req, res) => {
     const uid = req.user.id;
     const gid = Number(req.params.id);
     const { date, title } = req.body.settle_main;
-    console.log('controller: uid, gid, data, title:', uid, gid, data, title);
+    console.log('controller: uid, gid, data, title:', uid, gid, date, title);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
