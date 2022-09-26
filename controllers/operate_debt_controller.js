@@ -10,13 +10,14 @@ const Mapping = require('../config/mapping');
 
 const postDebt = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
 
     const gid = Number(req.params.id);
     const debtMain = req.body.debt_main; //{date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
-    console.log(debtMain);
+    console.info('controller: gid, debtMain, debtDetail:  ', gid, debtMain, debtDetail, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -84,13 +85,14 @@ const postDebt = async (req, res) => {
 };
 const updateDebt = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
     const debtMainNew = req.body.debt_main;
     const debtDetailNew = req.body.debt_detail;
-    console.info('gid, debtId, debtMainNew, debtDetailNew', gid, debtId, debtMainNew, debtDetailNew);
+    console.info('controller: gid, debtId, debtMainNew, debtDetailNew', gid, debtId, debtMainNew, debtDetailNew, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -182,10 +184,12 @@ const updateDebt = async (req, res) => {
 
 const deleteDebt = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
+    console.info('controller: gid, debtId:', gid, debtId, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -263,13 +267,14 @@ const deleteDebt = async (req, res) => {
 
 const postSettle = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
 
     const uid = req.user.id;
     const gid = Number(req.params.id);
     const { date, title } = req.body.settle_main;
-    console.log('controller: uid, gid, data, title:', uid, gid, date, title);
+    console.log('controller: uid, gid, data, title:', uid, gid, date, title, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -344,6 +349,7 @@ const postSettle = async (req, res) => {
 
 const postSettlePair = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const { date, title } = req.body.settle_main;
@@ -351,7 +357,7 @@ const postSettlePair = async (req, res) => {
     const uid1 = Number(req.params.uid1);
     const uid2 = Number(req.params.uid2);
     const uid = req.user.id;
-    console.log('controller: uid, uid1, uid2, gid, data, title:', uid, uid1, uid2, gid, date, title);
+    console.log('controller: uid, uid1, uid2, gid, data, title:', uid, uid1, uid2, gid, date, title, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -503,11 +509,12 @@ const postSettlePair = async (req, res) => {
 };
 const postSettleDone = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.log('controller: uid, gid:', uid, gid);
+    console.log('controller: uid, gid:', uid, gid, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();

@@ -29,11 +29,12 @@ const express = require('express');
 const userRoute = require('./routes/user_route');
 const groupRoute = require('./routes/group_route');
 const debtRoute = require('./routes/debt_route');
-const app = express();
+var addRequestId = require('express-request-id')();
 const cors = require('cors');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(addRequestId);
 app.use(cors());
 //Routes
 app.use('/', express.static('public'));

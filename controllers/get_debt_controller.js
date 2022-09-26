@@ -8,14 +8,16 @@ const pageSize = process.env.PAGE_SIZE;
 const Mapping = require('../config/mapping');
 
 const getDebts = async (req, res) => {
-    console.log('@getDebts control:', req.params);
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
 
     const gid = Number(req.params.id);
     const uid = req.user.id;
     const paging = Number(req.query.paging) - 1 || 0;
+    console.info('controller: gid, uid, paging: ', gid, uid, paging, req.id);
+
     const debtMainRecords = [];
     //撈所有該群組內的帳
     try {
@@ -69,10 +71,12 @@ const getDebts = async (req, res) => {
 };
 const getDebtDetail = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
+    const debtMainId = req.params.debtId;
+    console.info('controller: debtMainId: ', debtMainId, req.id);
     try {
-        const debtMainId = req.params.debtId;
         const result = await Debt.getDebtDetail(debtMainId);
         if (!result) {
             console.error(result);
@@ -85,11 +89,12 @@ const getDebtDetail = async (req, res) => {
     }
 };
 const getDebtPages = async (req, res) => {
-    console.info('@getDebtPages control:', req.params);
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
+    console.info('controller: gid:', gid, req.id);
 
     try {
         //查paging
@@ -109,11 +114,13 @@ const getDebtPages = async (req, res) => {
 
 const getMeberBalances = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
+    const gid = Number(req.params.id);
+    console.info('controller: gid: ', gid, req.id);
     const conn = await pool.getConnection(); //配合其他route要使用get connection
     try {
-        const gid = Number(req.params.id);
         const groupUserIds = await Admin.getGroupUserIds(gid);
         if (!groupUserIds) {
             console.log(groupUserIds);
@@ -153,10 +160,12 @@ const getMeberBalances = async (req, res) => {
 };
 const getSettle = async (req, res) => {
     if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
     const uid = req.user.id;
+    console.info('controller: gid, uid:', gid, uid, req.id);
     const session = driver.session();
     await session.readTransaction(async (txc) => {
         try {
@@ -194,6 +203,7 @@ const getSettle = async (req, res) => {
 };
 const getUserBalances = async (req, res) => {
     const uid = req.user.id;
+    console.info('uid: ', uid, req.id);
     try {
         const result = await Debt.getUserBalances(uid); //同時撈borrow跟lend
         if (!result) {

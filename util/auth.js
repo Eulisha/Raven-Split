@@ -15,7 +15,7 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 };
 
 const authentication = async (req, res, next) => {
-    console.log(req.headers.authorization);
+    console.log(req.headers.authorization, req.id);
     console.log('token: ', req.get('authorization'));
     let accessToken = req.get('authorization');
     if (!accessToken) {
@@ -47,7 +47,7 @@ const authorization = async (req, res, next) => {
     // get user-groups and roles
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.log('uid, gid: ', uid, gid);
+    console.log('uid, gid: ', uid, gid, req.id);
     const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
     if (!userGroupRole) {
         console.log('getUserGroupRole result:', userGroupRole);
