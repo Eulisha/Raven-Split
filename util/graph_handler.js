@@ -2,28 +2,23 @@ const Graph = require('../models/graph_model');
 const { neo4j, driver } = require('../config/neo4j');
 
 const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
-    console.log('@ function updateGraphEdge @');
+    console.debug('gid, debtDetail, debtMain', gid, debtDetail, debtMain);
     try {
-        console.log('debtDetail', debtDetail);
         let map = [];
-        for (let debt of debtDetail) {
-            // console.log('debt:', debt);
-            if (debt.borrower !== debtMain.lender) {
-                //剔除自己的債
-                console.log(
-                    'To Neo get curr new debt: ',
-                    'gid',
-                    neo4j.int(gid),
-                    'borrower',
-                    neo4j.int(debt.borrower),
-                    'lender',
-                    neo4j.int(debtMain.lender),
-                    'amount',
-                    neo4j.int(debt.amount)
-                );
+        let selfInd;
+        debtDetail.forEach((debt, ind) => {
+            // console.debug(debt, ind);
+            if (Number(debt.borrower) !== Number(debtMain.lender)) {
+                //不是自己的帳才放進來
+                // console.debug('inside if: ', debt, ind);
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
+            } else {
+                // console.debug('inside if: ', debt, ind);
+                selfInd = ind;
             }
-        }
+        });
+        debtDetail.splice(selfInd, 1);
+        console.debug('map, updated debtDetail: ', map, debtDetail);
 
         //先查出原本的債務線
         const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);
