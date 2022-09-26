@@ -15,8 +15,9 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 };
 
 const authentication = async (req, res, next) => {
-    console.log('token: ', req.get('Authorization'));
-    let accessToken = req.get('Authorization');
+    console.log(req.headers.authorization);
+    console.log('token: ', req.get('authorization'));
+    let accessToken = req.get('authorization');
     if (!accessToken) {
         return res.status(401).json({ err: 'Unauthorized' });
     }

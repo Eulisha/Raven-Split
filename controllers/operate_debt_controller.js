@@ -476,7 +476,7 @@ const postSettlePair = async (req, res) => {
 
             // search update result from dbs just for refernce
             const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
-
+            console.log('graph update result: ', updateResult);
             //結束settle, 更新狀態
             const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
             if (!resultSetSetting) {

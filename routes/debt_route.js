@@ -12,7 +12,7 @@ debtRoute.get('/pages/:id', authentication, authorization, getDebtPages);
 debtRoute.get('/settle/:id', authentication, authorization, getSettle);
 debtRoute.post('/debt/:id', authentication, checkIfOnSettling, authorization, postDebt);
 debtRoute.post('/settle/:id', authentication, checkIfOnSettling, authorization, postSettle);
-debtRoute.post('/settle/:id/:uid1/:uid2', authentication, checkIfOnSettling, authorization, postSettlePair);
+debtRoute.post('/settle-pair/:id/:uid1/:uid2', authentication, checkIfOnSettling, authorization, postSettlePair);
 debtRoute.post('/settle-done/:id', authentication, checkIfOnSettling, authorization, postSettleDone);
 debtRoute.put('/debt/:id/:debtId', authentication, checkIfOnSettling, authorization, updateDebt);
 debtRoute.delete('/debt/:id/:debtId', authentication, checkIfOnSettling, authorization, deleteDebt);
