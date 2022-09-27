@@ -5,16 +5,18 @@ const jwtExpire = process.env['JWT_EXPIRE'];
 const User = require('../models/user_model');
 
 const signUp = async (req, res) => {
-    console.log('sign-up body: ', req.body);
+    console.log('sign-up req.body: ', req.body);
 
     const { email, password, name, cellphone, provider } = req.body;
 
     //確認email是否存在
     const checkExistResult = await User.checkExist(email);
     if (!checkExistResult) {
-        return res.status(500).json({ err: checkExistResult });
+        console.error('checkExistResult fail: 500: ', checkExistResult);
+        return res.status(500).json({ err: 'Internal Server Error.' });
     }
     if (checkExistResult.length !== 0) {
+        console.error('checkExistResult fail: 403: ', checkExistResult);
         return res.status(403).json({ err: 'Email already existed.' });
     }
 
@@ -50,7 +52,7 @@ const signUp = async (req, res) => {
 };
 
 const signIn = async (req, res) => {
-    console.log('sign-in body :', req.body);
+    console.log('sign-in req.body :', req.body);
 
     const { email, password, provider } = req.body;
 
@@ -59,26 +61,30 @@ const signIn = async (req, res) => {
     console.debug(signInResult);
 
     if (!signInResult) {
+        console.error('signInResult fail: 500: ', signInResult);
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
     if (signInResult.length === 0) {
-        return res.status(403).json({ err: 'Email not existed.' });
+        console.error('signInResult fail: 403: ', signInResult);
+        return res.status(403).json({ err: 'Please check e-mail and password are correct.' });
     }
 
     // hash密碼來驗證
     try {
         const hash = await bcrypt.compare(password, signInResult[0].password);
         if (!hash) {
-            return res.status(403).json({ err: 'Password incorrect.' });
+            console.error('has fail: 403: ', hash);
+            return res.status(403).json({ err: 'Please check e-mail and password are correct.' });
         }
     } catch (err) {
-        console.log(err);
-        return res.status(500).json({ err: 'Hash fail.' });
+        console.error('has fail: 500: ', err);
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
 
     // get user-groups and roles
     const userGroups = await User.getUserGroups(signInResult[0].id);
     if (!userGroups) {
+        console.error('userGroups fail: 500: ', hash);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
