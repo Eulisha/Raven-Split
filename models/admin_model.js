@@ -20,12 +20,12 @@ const createGroup = async (conn, group_name, group_type, members) => {
         return null;
     }
 };
-const createMember = async (gid, uid, role) => {
+const createMember = async (conn, gid, uid, role) => {
     console.log('@createMember: gid, uid, role', gid, uid, role);
     try {
         const sql = 'INSERT INTO group_users SET gid = ?, uid = ?, role = ?, status = ?';
         const data = [gid, uid, role, 1];
-        const [result] = await pool.execute(sql, data);
+        const [result] = await conn.execute(sql, data);
         const insertId = result.insertId;
         return insertId;
     } catch (err) {

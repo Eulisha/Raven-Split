@@ -17,8 +17,11 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                 selfInd = ind;
             }
         });
-        debtDetail.splice(selfInd, 1);
-        console.debug('map, updated debtDetail: ', map, debtDetail);
+        // console.debug(selfInd);
+        if (selfInd) {
+            debtDetail.splice(selfInd, 1);
+        }
+        console.debug('map, updated-debtDetail: ', map, debtDetail);
 
         //先查出原本的債務線
         const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);

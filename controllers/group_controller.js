@@ -71,36 +71,58 @@ const updateGroup = async (req, res) => {
     const group_name = req.body.group_name;
     const group_type = req.body.group_type;
     const groupUsers = req.body.groupUsers;
-    console.info('req body', group_name, group_type, groupUsers);
+    console.info('req body', gid, group_name, group_type, groupUsers);
+    //取得MySql&Neo連線並開始transaction
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const session = driver.session();
+    //TODO:還要檢查
+    await session.writeTransaction(async (txc) => {
+        try {
+            if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+                return res.status(403).json({ err: 'No authorization.' });
+            }
 
-    try {
-        if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-            return res.status(403).json({ err: 'No authorization.' });
-        }
-
-        const result = await Admin.updateGroup(gid, group_name);
-        if (!result) {
-            return res.status(500).json({ err: 'Internal Server Error' });
-        }
-
-        let groupUserIds = [];
-        for (let i = 0; i < req.body.groupUsers.length; i++) {
-            const uid = groupUsers[i].uid;
-            const role = groupUsers[i].role;
-            console.log(uid, role);
-            const insertId = await Admin.createMember(gid, uid, role);
-            if (!insertId) {
+            const result = await Admin.updateGroup(gid, group_name);
+            if (!result) {
                 return res.status(500).json({ err: 'Internal Server Error' });
             }
-            console.log(insertId);
-            groupUserIds.push(insertId);
-        }
 
-        return res.status(200).json({ data: groupUserIds });
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ err: 'Internal Server Error' });
-    }
+            let groupUserIds = [];
+            let map = [];
+            for (let i = 0; i < req.body.groupUsers.length; i++) {
+                const uid = groupUsers[i].uid;
+                const role = groupUsers[i].role;
+                console.log(uid, role);
+                const insertId = await Admin.createMember(conn, gid, uid, role);
+                if (!insertId) {
+                    console.error('Admin.createMember result: ', insertId);
+                    throw new Error('Internal Server Error');
+                }
+                console.log(insertId);
+                groupUserIds.push(insertId);
+                map.push({ name: neo4j.int(uid) }); //處理neo4j integer
+            }
+            const graphResult = Graph.createNodes(txc, gid, map);
+            if (!graphResult) {
+                console.error('Graph.createNodes result: ', debtsForUpdate);
+                throw new Error('Internal Server Error');
+            }
+            //全部成功，MySQL做commit
+            await conn.commit();
+            await txc.commit();
+            conn.release();
+            session.close();
+            return res.status(200).json({ data: groupUserIds });
+        } catch (err) {
+            console.error('ERROR: ', err);
+            await conn.rollback();
+            await txc.rollback();
+            conn.release();
+            session.close();
+            return res.status(500).json({ err: 'Internal Server Error' });
+        }
+    });
 };
 const deleteMember = async (req, res) => {
     if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {

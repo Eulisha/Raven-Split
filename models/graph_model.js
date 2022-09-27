@@ -22,7 +22,6 @@ const getCurrEdge = async (txc, gid, lender, map) => {
     console.info('graph model: gid, lender, map: ', gid, lender, map);
     try {
         let map1 = map;
-        console.log('i am map ', map1, gid);
         // console.log('map:',map1);
         const result = await txc.run(
             'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender, g UNWIND $borrowers AS b MATCH (borrower:person)-[:member_of]->(g:group{name:$gid}) WHERE borrower.name = b.name WITH lender, borrower MERGE (borrower)-[r:own]-(lender) ON CREATE SET r.amount = $empty RETURN startNode(r).name AS start, endNode(r).name AS end, r.amount AS amount',
