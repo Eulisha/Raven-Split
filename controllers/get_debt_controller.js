@@ -171,12 +171,12 @@ const getSettle = async (req, res) => {
         try {
             const resultGetGraph = await Graph.getGraph(txc, neo4j.int(gid));
             if (!resultGetGraph) {
-                console.error(resultGetGraph);
+                console.error('getGraph fail get false:', resultGetGraph);
                 throw new Error('Internal Server Error');
             }
             if (!resultGetGraph == 0) {
-                console.error(resultGetGraph);
-                session.close();
+                console.error('getGraph fail get no match:', resultGetGraph);
+                // session.close();
                 return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
             }
             const graph = resultGetGraph.records.map((record) => {
