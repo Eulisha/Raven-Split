@@ -29,12 +29,14 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                         throw new Error('Internal Server Error');
                     }
                 } else {
-                    // console.log('<0');
+                    // console.log('<0'); //FIXME: debug only, 實際不可能發生
+                    console.error('計算錯誤');
+                    throw new Error('Internal Server Error');
                     // 改為 borrower <-own-lender
-                    const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, -newBalance);
-                    if (!result) {
-                        throw new Error('Internal Server Error');
-                    }
+                    // const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, -newBalance);
+                    // if (!result) {
+                    // throw new Error('Internal Server Error');
+                    // }
                 }
             } else {
                 // 查反向 borrower <-own-lender

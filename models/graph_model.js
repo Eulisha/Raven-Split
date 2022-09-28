@@ -63,7 +63,9 @@ const updateBestPath = async (txc, debtsForUpdate) => {
     try {
         const result = await txc.run(
             // 'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = debt.amount', //改成直接算好set值
+            //FIXME:這邊沒帶gid可能會錯？？
             'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = r.amount + debt.amount',
+
             { debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
         );
         console.debug('updatebestpath: ', result.summary.updateStatistics);

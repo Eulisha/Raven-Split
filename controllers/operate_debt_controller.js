@@ -101,8 +101,8 @@ const updateDebt = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
-            //0-1) get previous debt data for balance and best path usage
-            const [debtMainOld] = await Debt.getDebt(conn, debtId);
+            //0-1) search if debt exist and get previous debt data for balance and best path usage
+            const debtMainOld = await Debt.getDebt(conn, debtId);
             const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
             if (!debtMainOld || !debtDetailOld) {
                 throw new Error('Internal Server Error');
@@ -135,7 +135,8 @@ const updateDebt = async (req, res) => {
             });
 
             //2-1) mysql update balance
-            const oldBalanceResult = await updateBalance(conn, gid, debtMainOld, debtDetailOld);
+            //平衡包含了先前的那筆帳，所以要先減掉它、然後再加上新的；因為新舊帳牽涉的人不一定是同一個，所以沒辦法先算好，只更新一次
+            const oldBalanceResult = await updateBalance(conn, gid, debtMainOld[0], debtDetailOld);
             if (!oldBalanceResult) {
                 throw new Error('Internal Server Error');
             }
@@ -146,7 +147,7 @@ const updateDebt = async (req, res) => {
 
             //2-2)Neo4j update edge
             console.info('start neo4j');
-            const oldEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainOld, debtDetailOld);
+            const oldEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainOld[0], debtDetailOld);
             const newEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainNew, debtDetailNew);
             console.debug('Neo4j更新線的結果：', oldEdgeesult);
             console.debug('Neo4j更新線的結果：', newEdgeesult);
@@ -415,7 +416,7 @@ const postSettlePair = async (req, res) => {
                 console.log(createDebtDetailResult);
                 throw new Error('Internal Server Error');
             }
-            // 3) MySql clear balance of this pair
+            // 3) MySql clear balance of this pair //也可以是update一筆反向的, 跟刪除結果會是相同
             const deleteDebtBalanceResult = await Debt.deleteDebtBalance(conn, pairBalance.id); //直接把該id的balance帳刪除
             if (!deleteDebtBalanceResult) {
                 console.error(deleteDebtBalanceResult);
