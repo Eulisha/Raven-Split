@@ -9,7 +9,7 @@ const { updatedBalanceGraph } = require('../util/bundle_getter');
 const Mapping = require('../config/mapping');
 
 const postDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -57,14 +57,15 @@ const postDebt = async (req, res) => {
                 console.error(debtsForUpdate);
                 throw new Error('Internal Server Error');
             }
-            //NEO4j更新best path graph
+            //4)NEO4j更新best path graph
             console.debug('debtsForUpdate:  ', debtsForUpdate);
             const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
             if (!updateGraph) {
                 console.error(updateGraph);
                 throw new Error('Internal Server Error');
             }
-            // search update result from dbs just for refernce
+
+            // 5)search update result from dbs just for refernce
             const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
 
             //全部成功，MySQL做commit
@@ -84,7 +85,7 @@ const postDebt = async (req, res) => {
     });
 };
 const updateDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -100,25 +101,25 @@ const updateDebt = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
-            //0) get previous debt data for balance and best path usage
+            //0-1) get previous debt data for balance and best path usage
             const [debtMainOld] = await Debt.getDebt(conn, debtId);
             const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
             if (!debtMainOld || !debtDetailOld) {
                 throw new Error('Internal Server Error');
             }
-            if (debtMainOld.length === 0 || debtDetailOld.length === 0) {
+            if (debtMainOld.length == 0 || debtDetailOld.length == 0) {
                 throw new Error('Previous debt record not found.');
             }
             console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 
-            //1) mysql set previous debt status to 0
+            //0-2) mysql set previous debt status to 0
             const status = Mapping.DEBT_STATUS.deprach; //custom update, create new one directly
             const deleteResult = await Debt.deleteDebt(conn, debtId, status);
             if (!deleteResult) {
                 throw new Error('Internal Server Error');
             }
 
-            //2) MYSQL create new raw data
+            //1) MYSQL create new raw data
             const debtMainId = await Debt.createDebt(conn, gid, debtMainNew);
             if (!debtMainId) {
                 throw new Error('Internal Server Error');
@@ -133,7 +134,7 @@ const updateDebt = async (req, res) => {
                 debtDetailOld[ind].amount = -ele.amount;
             });
 
-            //3) mysql update balance
+            //2-1) mysql update balance
             const oldBalanceResult = await updateBalance(conn, gid, debtMainOld, debtDetailOld);
             if (!oldBalanceResult) {
                 throw new Error('Internal Server Error');
@@ -143,19 +144,19 @@ const updateDebt = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
 
-            //4)Neo4j update edge
+            //2-2)Neo4j update edge
             console.info('start neo4j');
             const oldEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainOld, debtDetailOld);
             const newEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainNew, debtDetailNew);
             console.debug('Neo4j更新線的結果：', oldEdgeesult);
             console.debug('Neo4j更新線的結果：', newEdgeesult);
 
-            //5)算最佳解
+            //3)NEO4j取出所有路徑，並計算出最佳解
             let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
-            //NEO4j更新best path graph
+            //4)NEO4j更新best path graph
             console.debug('debtsForUpdate:  ', debtsForUpdate);
             const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
             if (!updateGraph) {
@@ -183,7 +184,7 @@ const updateDebt = async (req, res) => {
 };
 
 const deleteDebt = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -197,7 +198,7 @@ const deleteDebt = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
-            // 1) search db to get debt info
+            //0-1) get previous debt data for balance and best path usage
             const debtMain = await Debt.getDebt(conn, debtId);
             console.log('debtMain: ', debtMain);
             if (!debtMain) {
@@ -209,7 +210,7 @@ const deleteDebt = async (req, res) => {
             }
             console.log('debtDetail: ', debtDetail);
 
-            // 2) mysql set debt status to customer delete
+            //0-2) mysql set debt status to customer delete
             const status = Mapping.DEBT_STATUS.customer_deleted; //customer delete
             const deleteResult = await Debt.deleteDebt(conn, debtId, status);
             if (!deleteResult) {
@@ -219,13 +220,13 @@ const deleteDebt = async (req, res) => {
             debtDetail.forEach((ele, ind) => {
                 debtDetail[ind].amount = -ele.amount;
             });
-            // 3-1) mysql update balance
+            // 2-1) mysql update balance
             const updateBalanceResult = await updateBalance(conn, gid, debtMain[0], debtDetail); //這裡的debtDetail已經是amount為負的
             if (!updateBalanceResult) {
                 throw new Error('Internal Server Error');
             }
 
-            // 3-2) Neo4j update edge
+            // 2-2) Neo4j update edge
             const updateGraphEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMain[0], debtDetail);
             if (!updateGraphEdgeesult) {
                 throw new Error('Internal Server Error');
@@ -233,12 +234,12 @@ const deleteDebt = async (req, res) => {
             console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
             //TODO:處理沒有MATCH的狀況（不會跳error）
 
-            // 4) Neo4j get all path and calculate best path
+            // 3) Neo4j get all path and calculate best path
             let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 throw new Error('Internal Server Error');
             }
-            // 5) Neo4j update best path graph
+            // 4) Neo4j update best path graph
             console.log('debtsForUpdate:  ', debtsForUpdate);
             const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
             if (!updateGraph) {
@@ -266,7 +267,7 @@ const deleteDebt = async (req, res) => {
 };
 
 const postSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -282,8 +283,9 @@ const postSettle = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
+            // 1) get group balance from Neo
             const result = await Graph.getGraph(txc, neo4j.int(gid));
-            if (result.records.length === 0) {
+            if (result.records.length == 0) {
                 //res之前要先把settle鎖拿掉
                 const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
                 if (!resultSetSetting) {
@@ -293,11 +295,12 @@ const postSettle = async (req, res) => {
                 conn.release();
                 return res.status(400).json({ err: 'No matched result' });
             }
+            // 2) MySql clear balance of this pair
             for (let record of result.records) {
                 let amount = record.get('amount').toNumber();
                 let borrower = record.get('borrower').toNumber();
                 let lender = record.get('lender').toNumber();
-                if (amount !== 0) {
+                if (amount != 0) {
                     //因為是還錢所以debtMain的lender值為本來的borrower
                     let debtMain = { gid, date, title, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
                     let debtId = await Debt.createDebt(conn, gid, debtMain);
@@ -313,12 +316,13 @@ const postSettle = async (req, res) => {
                     }
                 }
             }
+            // 3) MySql clear balance of this pair
             const deleteDebtBalancesResult = await Debt.deleteDebtBalances(conn, gid);
             if (!deleteDebtBalancesResult) {
                 console.error(deleteDebtBalancesResult);
                 throw new Error('Internal Server Error');
             }
-
+            // 4) Neo4j delete old edges(debt), nodes remained
             const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
             if (!deleteBestPathResult) {
                 console.error(deleteBestPathResult);
@@ -348,7 +352,7 @@ const postSettle = async (req, res) => {
 };
 
 const postSettlePair = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -365,16 +369,16 @@ const postSettlePair = async (req, res) => {
     const session = driver.session();
     await session.writeTransaction(async (txc) => {
         try {
-            // 1) MySql get balance of this pair
+            // 1-1) get balance of this pair from MySql
             let balances = await Debt.getAllBalances(conn, gid);
             if (!balances) {
                 throw new Error('Internal Server Error');
             }
-            // 1-1) get pair balance
+            // 1-2) find balance of this pair
             console.debug(balances);
             let pairBalance = {};
             for (let i = 0; i < balances.length; i++) {
-                if ((balances[i].borrower === uid1 && balances[i].lender === uid2) || (balances[i].borrower === uid2 && balances[i].lender === uid1)) {
+                if ((balances[i].borrower == uid1 && balances[i].lender == uid2) || (balances[i].borrower == uid2 && balances[i].lender == uid1)) {
                     pairBalance = balances[i];
                     balances.splice(i, 1); //將balances內該筆刪除，供後面Neo建立graph使用
                     break;
@@ -418,15 +422,14 @@ const postSettlePair = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
 
-            // 5) Neo4j delete edges in Neo4j graph of this group
+            // 4) Neo4j recreate
+            // 4-1) Neo4j delete old edges(debt), nodes remained
             const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
             if (!deleteBestPathResult) {
                 console.error(deleteBestPathResult);
                 throw new Error('Internal Server Error');
             }
 
-            // 4) Neo4j recreate
-            // 4-1) regen Neo4j
             // 4-1-1) create group on Neo4j
             // 4-1-1-1) get group users
             // const getGroupUserIds = await Admin.getGroupUserIds(gid);
@@ -446,11 +449,9 @@ const postSettlePair = async (req, res) => {
             //     return res.status(500).json({ err: 'Internal Server Error' });
             // }
 
-            // 4-1-2) updateEdge on Neo4j
-            // 上面只會刪除關係線，所以不需要建新群組
-            // 把前面已經刪除settle完pair balance剩下的balances拿去畫圖
-
+            // 4-2) Neo4j recreate(update) edges
             let newMap = balances.map((balance) => {
+                // 這裡的balance已經去除被settle的pair的帳
                 // 處理neo的數字
                 return {
                     borrower: neo4j.int(balance.borrower),
@@ -465,14 +466,14 @@ const postSettlePair = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
             console.debug('controller Neo4j更新線的結果： ', updateGraphEdgeesult);
-            // 4-2) get best path
-            // call graph handler
+
+            // 5) Neo4j get all path and calculate
             let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
             if (!debtsForUpdate) {
                 console.error(debtsForUpdate);
                 throw new Error('Internal Server Error');
             }
-            // 4-3) update Neo4j by best
+            // 6) Neo4j update best path graph
             console.debug('controller debtsForUpdate:  ', debtsForUpdate);
             const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
             if (!updateGraph) {
@@ -480,7 +481,7 @@ const postSettlePair = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
 
-            // search update result from dbs just for refernce
+            // 7) search update result from dbs just for refernce
             const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
             console.log('graph update result: ', updateResult);
             //結束settle, 更新狀態
@@ -508,7 +509,7 @@ const postSettlePair = async (req, res) => {
     });
 };
 const postSettleDone = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }

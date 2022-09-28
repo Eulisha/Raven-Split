@@ -15,7 +15,7 @@ const signUp = async (req, res) => {
         console.error('checkExistResult fail: 500: ', checkExistResult);
         return res.status(500).json({ err: 'Internal Server Error.' });
     }
-    if (checkExistResult.length !== 0) {
+    if (checkExistResult.length != 0) {
         console.error('checkExistResult fail: 403: ', checkExistResult);
         return res.status(403).json({ err: 'Email already existed.' });
     }
@@ -64,7 +64,7 @@ const signIn = async (req, res) => {
         console.error('signInResult fail: 500: ', signInResult);
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
-    if (signInResult.length === 0) {
+    if (signInResult.length == 0) {
         console.error('signInResult fail: 403: ', signInResult);
         return res.status(403).json({ err: 'Please check e-mail and password are correct.' });
     }
@@ -125,7 +125,7 @@ const getUserInfo = async (req, res) => {
     if (!signInResult) {
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
-    if (signInResult.length === 0) {
+    if (signInResult.length == 0) {
         return res.status(403).json({ err: 'JWT invalid.' });
     }
 
@@ -158,7 +158,7 @@ const getUserGroups = async (req, res) => {
 const checkUserExist = async (req, res) => {
     console.log(req.query);
     const email = req.query.email;
-    if (!email || email === '') {
+    if (!email || email == '') {
         return res.status(400).json({ err: 'No email input.' });
     }
     const checkExistResult = await User.checkExist(email);
@@ -166,7 +166,7 @@ const checkUserExist = async (req, res) => {
         console.log('checkExist result:', checkExistResult);
         return res.status(500).json({ err: checkExistResult });
     }
-    if (checkExistResult.length === 0) {
+    if (checkExistResult.length == 0) {
         console.log('checkExist result:', checkExistResult, '=> User not exist.');
         return res.status(400).json({ err: 'User not exist.' });
     }

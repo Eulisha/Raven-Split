@@ -8,7 +8,7 @@ const pageSize = process.env.PAGE_SIZE;
 const Mapping = require('../config/mapping');
 
 const getDebts = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -42,7 +42,7 @@ const getDebts = async (req, res) => {
                 debtDetailResult.amount = 0;
             }
             //自己是付錢的人
-            if (uid === debtMain.lender) {
+            if (uid == debtMain.lender) {
                 isOwned = true;
                 ownAmount = debtMain.total - debtDetailResult.amount;
             } else {
@@ -70,7 +70,7 @@ const getDebts = async (req, res) => {
     }
 };
 const getDebtDetail = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -89,7 +89,7 @@ const getDebtDetail = async (req, res) => {
     }
 };
 const getDebtPages = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -113,7 +113,7 @@ const getDebtPages = async (req, res) => {
 };
 
 const getMeberBalances = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -159,7 +159,7 @@ const getMeberBalances = async (req, res) => {
     }
 };
 const getSettle = async (req, res) => {
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
@@ -174,7 +174,7 @@ const getSettle = async (req, res) => {
                 console.error(resultGetGraph);
                 throw new Error('Internal Server Error');
             }
-            if (!resultGetGraph === 0) {
+            if (!resultGetGraph == 0) {
                 console.error(resultGetGraph);
                 session.close();
                 return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
@@ -217,7 +217,7 @@ const getUserBalances = async (req, res) => {
         console.debug('getUserBalances result: ', result);
 
         //borrow: 我跟lender借錢
-        if (result[0].length === 0) {
+        if (result[0].length == 0) {
             data.borrow = [];
         } else {
             result[0].map((debt) => {
@@ -226,7 +226,7 @@ const getUserBalances = async (req, res) => {
                 if (!borrow[debt.lender]) {
                     borrow[debt.lender] = { uid: debt.lender, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
-                if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
+                if (Number(debt.type) == Mapping.GROUP_TYPE.pair) {
                     //兩人分帳
                     borrow[debt.lender]['uid'] = debt.lender;
                     borrow[debt.lender]['pair'] = debt.amount;
@@ -234,7 +234,7 @@ const getUserBalances = async (req, res) => {
                 } else {
                     borrow[debt.lender]['total'] += debt.amount;
                     group = { gid: debt.gid, group_name: debt.group_name, amount: debt.amount };
-                    if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
+                    if (Number(debt.type) == Mapping.GROUP_TYPE.group) {
                         //一般分帳群
                         borrow[debt.lender]['group_normal'].push(group);
                     } else {
@@ -248,7 +248,7 @@ const getUserBalances = async (req, res) => {
         }
 
         //lend: 我借borrower錢
-        if (result[1].length === 0) {
+        if (result[1].length == 0) {
             data.lend = [];
         } else {
             result[1].map((debt) => {
@@ -257,7 +257,7 @@ const getUserBalances = async (req, res) => {
                 if (!lend[debt.borrower]) {
                     lend[debt.borrower] = { uid: debt.borrower, user_name: debt.user_name, pair: null, total: null, group_normal: [], group_buying: [] };
                 }
-                if (Number(debt.type) === Mapping.GROUP_TYPE.pair) {
+                if (Number(debt.type) == Mapping.GROUP_TYPE.pair) {
                     //兩人分帳
                     lend[debt.borrower]['uid'] = debt.borrower;
                     lend[debt.borrower]['pair'] = debt.amount;
@@ -265,7 +265,7 @@ const getUserBalances = async (req, res) => {
                 } else {
                     lend[debt.borrower]['total'] += debt.amount;
                     group = { gid: debt.gid, group_name: debt.group_name, amount: debt.amount };
-                    if (Number(debt.type) === Mapping.GROUP_TYPE.group) {
+                    if (Number(debt.type) == Mapping.GROUP_TYPE.group) {
                         //一般分帳群
                         lend[debt.borrower]['group_normal'].push(group);
                     } else {

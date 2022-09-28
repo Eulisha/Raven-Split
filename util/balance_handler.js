@@ -7,7 +7,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
         // 拉出pair本來的借貸並更新
         for (let debt of debtDetail) {
             //剔除自己的帳
-            if (debt.borrower === debtMain.lender) {
+            if (debt.borrower == debtMain.lender) {
                 continue;
             }
             //查正向 borrower-own->lender
@@ -15,8 +15,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
             if (!getBalanceResult) {
                 throw new Error('Internal Server Error');
             }
-            if (getBalanceResult.length !== 0) {
-                // console.log('balance1:');
+            if (getBalanceResult.length != 0) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let balanceId = getBalanceResult[0].id;
                 let originalDebt = getBalanceResult[0].amount;
@@ -43,7 +42,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                 if (!getBalanceResult) {
                     throw new Error('Internal Server Error');
                 }
-                if (getBalanceResult.length !== 0) {
+                if (getBalanceResult.length != 0) {
                     // console.log('balance2:');
                     // 原本債務關係和目前相反 borrower <-own-lender
                     let balanceId = getBalanceResult[0].id;

@@ -57,7 +57,7 @@ const createGroup = async (req, res) => {
 };
 const getGroupUsers = async (req, res) => {
     console.log('@control getGroupUsers');
-    if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const members = await Admin.getGroupUsers(Number(req.params.id));
@@ -79,7 +79,7 @@ const updateGroup = async (req, res) => {
     //TODO:還要檢查
     await session.writeTransaction(async (txc) => {
         try {
-            if (req.userGroupRole.gid !== Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
+            if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
                 return res.status(403).json({ err: 'No authorization.' });
             }
 
@@ -125,7 +125,7 @@ const updateGroup = async (req, res) => {
     });
 };
 const deleteMember = async (req, res) => {
-    if (req.userGroupRole.gid !== req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
+    if (req.userGroupRole.gid != req.params.gid || req.userGroupRole.role < Mapping.USER_ROLE['administer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
     const groupId = req.params.gid;

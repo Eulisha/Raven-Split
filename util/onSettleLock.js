@@ -13,7 +13,7 @@ const checkIfOnSettling = async (req, res, next) => {
     }
     if (result.length > 0) {
         //setting, only allow settler operate at settle related route
-        if (uid !== result[0].uid) {
+        if (uid != result[0].uid) {
             if (req.path.includes('/settle-done')) {
                 return res.status(200).json({ data: `Not current settler. Nothing to do.` });
             }

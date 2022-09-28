@@ -8,7 +8,7 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
         let selfInd;
         debtDetail.forEach((debt, ind) => {
             // console.debug(debt, ind);
-            if (Number(debt.borrower) !== Number(debtMain.lender)) {
+            if (Number(debt.borrower) != Number(debtMain.lender)) {
                 //不是自己的帳才放進來
                 // console.debug('inside if: ', debt, ind);
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
@@ -32,17 +32,17 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
             let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
             // console.log('current:', start, end, originalDebt);
-            if (start === debtDetail[ind].borrower) {
+            if (start == debtDetail[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let newBalance = originalDebt + debtDetail[ind].amount;
                 if (newBalance >= 0) {
                     // 維持borrower <-own-lender
-                    console.log('balance1: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
+                    console.debug('balance1: ++', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
                 } else {
                     // 改為borrower-own->lender
                     newBalance = -newBalance;
-                    console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
+                    console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
                     Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
@@ -51,12 +51,12 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                 let newBalance = originalDebt - debtDetail[ind].amount;
                 if (newBalance >= 0) {
                     // 維持borrower <-own-lender
-                    console.log('balance2: ', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
+                    console.debug('balance3: --', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
                 } else {
                     // 改為borrower-own->lender
                     newBalance = -newBalance;
-                    console.log('balance3: ', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
+                    console.debug('balance4: -+', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
                     Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
@@ -177,7 +177,7 @@ const getBestPath = async (txc, gid) => {
                     // console.debug('目前path', path);
                     let bottleneckValue = 0;
                     let pathBlock = false;
-                    if (path.length !== 1) {
+                    if (path.length != 1) {
                         //第四層：iterate edges in path
                         // console.log('扣除前：', graph);
                         let debts = [];
