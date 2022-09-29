@@ -3,6 +3,7 @@ const { neo4j, driver } = require('../config/neo4j');
 const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 const Admin = require('../models/admin_model');
+const User = require('../models/user_model');
 const GraphHandler = require('../util/graph_handler');
 const { updateBalance } = require('../util/balance_handler');
 const { updatedBalanceGraph } = require('../util/bundle_getter');
@@ -279,8 +280,8 @@ const postSettle = async (req, res) => {
 
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    const { date, title } = req.body.settle_main;
-    console.log('controller: uid, gid, data, title:', uid, gid, date, title, req.id);
+    const { date } = req.body.settle_main;
+    console.log('controller: uid, gid, data:', uid, gid, date, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -291,24 +292,37 @@ const postSettle = async (req, res) => {
     try {
         // 1) get group balance from Neo
         const result = await Graph.getGraph(txc, neo4j.int(gid));
+        if (!result) {
+            console.error('getGraph fail: ', result);
+            throw new Error('Internal Server Error');
+        }
+
         if (result.records.length == 0) {
+            console.error('getGraph no match: ', result.records.length);
             //res之前要先把settle鎖拿掉
             const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
             if (!resultSetSetting) {
+                console.error('setSettleDone fail: ', resultSetSetting);
                 throw new Error('Internal Server Error');
             }
-            await conn.rollback();
-            conn.release();
+            await conn.commit();
             return res.status(400).json({ err: 'No matched result' });
         }
+
         // 2) MySql clear balance of this pair
         for (let record of result.records) {
             let amount = record.get('amount').toNumber();
             let borrower = record.get('borrower').toNumber();
             let lender = record.get('lender').toNumber();
             if (amount != 0) {
+                const userNames = await User.getUserNames(conn, borrower, lender);
+                if (!userNames) {
+                    console.error('getUserNames fail: ', userNames);
+                    throw new Error('Internal Server Error');
+                }
                 //因為是還錢所以debtMain的lender值為本來的borrower
-                let debtMain = { gid, date, title, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
+                let debtMain = { gid, date, total: amount, lender: borrower, split_method: Mapping.SPLIT_METHOD.full_amount };
+                debtMain.title = `Settle Balances Between ${userNames[0].name} ${userNames[1].name}`;
                 let debtId = await Debt.createDebt(conn, gid, debtMain);
                 if (!debtId) {
                     console.log(debtId);
@@ -361,12 +375,13 @@ const postSettlePair = async (req, res) => {
         console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const { date, title } = req.body.settle_main;
+    const { date } = req.body.settle_main;
+    // const title = req.body.settle_main.title || 'Settle Balances Between';
     const gid = Number(req.params.id);
     const uid1 = Number(req.params.uid1);
     const uid2 = Number(req.params.uid2);
     const uid = req.user.id;
-    console.log('controller: uid, uid1, uid2, gid, data, title:', uid, uid1, uid2, gid, date, title, req.id);
+    console.log('controller: uid, uid1, uid2, gid, data:', uid, uid1, uid2, gid, date, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -378,8 +393,23 @@ const postSettlePair = async (req, res) => {
         // 1-1) get balance of this pair from MySql
         let balances = await Debt.getAllBalances(conn, gid);
         if (!balances) {
+            console.error('getAllBalances fail: ', balances);
             throw new Error('Internal Server Error');
         }
+
+        // //沒查到代表沒有賬務關係
+        // if (balances.length === 0) {
+        //     console.error('getAllBalances no match: ', balances.length);
+        //     //res之前要先把settle鎖拿掉
+        //     const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
+        //     if (!resultSetSetting) {
+        //         console.error('setSettleDone fail: ', resultSetSetting);
+        //         throw new Error('Internal Server Error');
+        //     }
+        //     await conn.commit();
+        //     return res.status(400).json({ err: 'No matched result' });
+        // }
+
         // 1-2) find balance of this pair
         console.debug(balances);
         let pairBalance = {};
@@ -392,9 +422,9 @@ const postSettlePair = async (req, res) => {
         }
         console.debug('pairBalance', pairBalance);
 
-        if (!pairBalance.id) {
-            //找不到, 代表沒有債務關係
-            console.error('pariBalance result: ', pairBalance);
+        if (!pairBalance.id || pairBalance.amount === 0) {
+            //找不到, 代表沒有債務關係、或目前債務為0
+            console.error('pariBalance no match: ', pairBalance);
 
             //res之前要先把settle鎖拿掉
             const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
@@ -402,14 +432,18 @@ const postSettlePair = async (req, res) => {
                 console.error('settle done result: ', resultSetSetting);
                 throw new Error('Internal Server Error');
             }
-            await conn.rollback();
-            await conn.release();
-            // session.close();
-            return res.status(400).json({ err: 'No Debt Relationship.' });
+            await conn.commit();
+            return res.status(400).json({ err: 'Balances not exist.' });
         }
 
-        // 2) MySql create debt as settle
-        let debtMain = { gid, date, title, total: pairBalance.amount, lender: pairBalance.borrower, split_method: Mapping.SPLIT_METHOD.full_amount }; //因為是還錢所以debtMain的lender值為本來的borrower
+        // 2) MySql create a reverse debt as settle
+        let debtMain = { gid, date, total: pairBalance.amount, lender: pairBalance.borrower, split_method: Mapping.SPLIT_METHOD.full_amount }; //因為是還錢所以debtMain的lender值為本來的borrower
+        const userNames = await User.getUserNames(conn, pairBalance.lender, pairBalance.borrower); //查user name組title
+        if (!userNames) {
+            console.error('getUserNames fail: ', userNames);
+            throw new Error('Internal Server Error');
+        }
+        debtMain.title = `Settle Balances Between ${userNames[0].name} ${userNames[1].name}`;
         const debtId = await Debt.createDebt(conn, gid, debtMain);
         if (!debtId) {
             console.log(debtId);

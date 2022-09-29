@@ -56,8 +56,8 @@ const createGroup = async (req, res) => {
     });
 };
 const getGroupUsers = async (req, res) => {
-    console.info('control: gid:', gid);
     const gid = Number(req.params.id);
+    console.info('control: gid:', gid);
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }

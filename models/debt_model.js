@@ -71,7 +71,7 @@ const getDebtDetailTrx = async (conn, debtId) => {
 };
 
 const createDebt = async (conn, gid, debtMain) => {
-    console.info('@createDebt: gid,debtMain : ', gid, debtMain);
+    console.info('model: gid,debtMain : ', gid, debtMain);
     try {
         const sql = 'INSERT INTO debt_main SET gid = ?, date = ?, title = ?, total = ?, lender = ?, split_method = ?, status = ?;';
         const data = [gid, debtMain.date, debtMain.title, debtMain.total, debtMain.lender, debtMain.split_method, 1];
