@@ -105,13 +105,19 @@ const updateDebt = async (req, res) => {
     try {
         //0-1) search if debt exist and get previous debt data for balance and best path usage
         const debtMainOld = await Debt.getDebt(conn, debtId);
-        const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
-        if (!debtMainOld || !debtDetailOld) {
+        if (!debtMainOld) {
+            console.error('getDebt fail :', debtMainOld);
             throw new Error('Internal Server Error');
         }
-        if (debtMainOld.length == 0 || debtDetailOld.length == 0) {
-            console.error('mysql search result :', debtMainOld);
-            throw new Error("Can't fount correspond debt record.");
+        const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
+        if (!debtDetailOld) {
+            console.error('getDebtDetailTrx fail :', debtDetailOld);
+            throw new Error('Internal Server Error');
+        }
+        //找不到或已經更新了
+        if (debtMainOld.length === 0 || debtDetailOld.length === 0) {
+            console.error('mysql getDebt getDebtDetailTrx no match :', debtMainOld.length, debtDetailOld.length);
+            return res.status(400).json({ err: "Can't fount correspond debt record. Please refresh and retry." });
         }
         console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 
@@ -207,7 +213,6 @@ const deleteDebt = async (req, res) => {
     try {
         //0-1) get previous debt data for balance and best path usage
         const debtMain = await Debt.getDebt(conn, debtId);
-        console.log('debtMain: ', debtMain);
         if (!debtMain) {
             throw new Error('Internal Server Error');
         }
@@ -215,7 +220,12 @@ const deleteDebt = async (req, res) => {
         if (!debtDetail) {
             throw new Error('Internal Server Error');
         }
-        console.log('debtDetail: ', debtDetail);
+        //找不到或已經更新了
+        if (debtMain.length === 0 || debtDetail.length === 0) {
+            console.error('mysql getDebt getDebtDetailTrx no match :', debtMain.length, debtDetail.length);
+            return res.status(400).json({ err: "Can't fount correspond debt record. Please refresh and retry." });
+        }
+        console.log('debtMain, debtDetail: ', debtMain, debtDetail);
 
         //0-2) mysql set debt status to customer delete
         const status = Mapping.DEBT_STATUS.customer_deleted; //customer delete
