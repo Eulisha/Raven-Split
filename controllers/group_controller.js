@@ -8,7 +8,7 @@ const createGroup = async (req, res) => {
     const group_name = req.body.group_name;
     const group_type = req.body.group_type;
     const groupUsers = req.body.groupUsers;
-    console.info('req body', group_name, group_type, groupUsers);
+    console.info('controller: group_name, group_type, groupUsers: ', group_name, group_type, groupUsers);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -56,12 +56,14 @@ const createGroup = async (req, res) => {
     });
 };
 const getGroupUsers = async (req, res) => {
-    console.log('@control getGroupUsers');
+    console.info('control: gid:', gid);
+    const gid = Number(req.params.id);
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
         return res.status(403).json({ err: 'No authorization.' });
     }
-    const members = await Admin.getGroupUsers(Number(req.params.id));
+    const members = await Admin.getGroupUsers(gid);
     if (!members) {
+        console.error('getGroupUsers fail: ', members);
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     return res.status(200).json({ data: members });
@@ -71,7 +73,7 @@ const updateGroup = async (req, res) => {
     const group_name = req.body.group_name;
     const group_type = req.body.group_type;
     const groupUsers = req.body.groupUsers;
-    console.info('req body', gid, group_name, group_type, groupUsers);
+    console.info('controller: gid, group_name, group_type, groupUsers: ', gid, group_name, group_type, groupUsers);
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -130,6 +132,7 @@ const deleteMember = async (req, res) => {
     }
     const groupId = req.params.gid;
     const userId = req.params.uid;
+    console.info('controller: groupId, userId: ', groupId, userId);
     const result = await Admin.deleteMember(groupId, userId);
     if (!result) {
         return res.status(500).json({ err: 'Internal Server Error' });

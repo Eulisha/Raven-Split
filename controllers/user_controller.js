@@ -5,7 +5,7 @@ const jwtExpire = process.env['JWT_EXPIRE'];
 const User = require('../models/user_model');
 
 const signUp = async (req, res) => {
-    console.log('sign-up req.body: ', req.body);
+    console.info('controller: req.body: ', req.body);
 
     const { email, password, name, cellphone, provider } = req.body;
 
@@ -52,7 +52,7 @@ const signUp = async (req, res) => {
 };
 
 const signIn = async (req, res) => {
-    console.log('sign-in req.body :', req.body);
+    console.log('controller: req.body :', req.body);
 
     const { email, password, provider } = req.body;
 
@@ -117,6 +117,7 @@ const signIn = async (req, res) => {
 const getUserInfo = async (req, res) => {
     //JWT解出的token
     let email = req.user.email;
+    console.info('controller: email:', email);
 
     //確認使用者是否存在(與signIn共用function)
     const signInResult = await User.signIn(email);
@@ -149,6 +150,7 @@ const getUserInfo = async (req, res) => {
 };
 const getUserGroups = async (req, res) => {
     let uid = req.user.id;
+    console.info('controller: uid: ', uid);
     const groups = await User.getUserGroups(uid);
     if (!groups) {
         return res.status(500).json({ err: 'Internal Server Error' });
@@ -156,7 +158,7 @@ const getUserGroups = async (req, res) => {
     res.status(200).json({ data: groups });
 };
 const checkUserExist = async (req, res) => {
-    console.log(req.query);
+    console.info('controller: req.query: ', req.query);
     const email = req.query.email;
     if (!email || email == '') {
         return res.status(400).json({ err: 'No email input.' });

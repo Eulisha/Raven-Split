@@ -4,6 +4,7 @@ const Debt = require('../models/debt_model');
 const Graph = require('../models/graph_model');
 
 const updatedBalanceGraph = async (conn, txc, gid) => {
+    console.info('bundle_getter, gid: ', gid);
     try {
         const balance = await Debt.getAllBalances(conn, gid);
         const resultGetGraph = await Graph.getGraph(txc, neo4j.int(gid));

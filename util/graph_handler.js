@@ -7,18 +7,20 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
         let map = [];
         let selfInd;
         debtDetail.forEach((debt, ind) => {
-            // console.debug(debt, ind);
+            console.debug(debt, ind);
+            console.debug(Number(debt.borrower) != Number(debtMain.lender));
             if (Number(debt.borrower) != Number(debtMain.lender)) {
                 //不是自己的帳才放進來
-                // console.debug('inside if: ', debt, ind);
+                console.debug('inside if: ', debt, ind);
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
             } else {
-                // console.debug('inside if: ', debt, ind);
+                console.debug('inside if: ', debt, ind);
                 selfInd = ind;
             }
         });
-        // console.debug(selfInd);
-        if (selfInd) {
+        console.debug(selfInd);
+        if (selfInd !== undefined) {
+            //用!selfInd 如果 index = 0 會被判斷為false
             debtDetail.splice(selfInd, 1);
         }
         console.debug('map, updated-debtDetail: ', map, debtDetail);
@@ -31,7 +33,7 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
             let start = oldDebt.get('start').toNumber();
             let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
-            // console.log('current:', start, end, originalDebt);
+            console.log('current:', start, end, originalDebt);
             if (start == debtDetail[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let newBalance = originalDebt + debtDetail[ind].amount;
@@ -40,13 +42,11 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                     console.debug('balance1: ++', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
                 } else {
-                    // 改為borrower-own->lender //FIXME: debug only, 實際不可能發生
-                    console.error('計算錯誤');
-                    throw new Error('Internal Server Error');
-                    // newBalance = -newBalance;
-                    // console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
-                    // newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    // Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
+                    // 改為borrower-own->lender //如果是update debt，會把舊的帳的值先變成負的，再呼叫這個function做計算，所以確實有可能是負的
+                    newBalance = -newBalance;
+                    console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
+                    newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
                 }
             } else if (end == debtDetail[ind].borrower) {
                 // 原本債務關係和目前相反 borrower<-own-lender
@@ -66,19 +66,12 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                 //找不到, 新增一筆
                 console.debug('balance5: x', 'borrower', neo4j.int(debtDetail[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debtDetail[ind].amount));
                 newMap.push({ borrower: neo4j.int(debtDetail[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debtDetail[ind].amount) });
-                // 改為borrower-own->lender
-                console.error('計算錯誤');
-                throw new Error('Internal Server Error');
-                // newBalance = -newBalance;
-                // console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
-                // newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                // Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
             }
         });
         //更新線
-        // console.log('for Neo newMap:   ', newMap);
+        console.log('for Neo newMap:   ', newMap);
         const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), newMap);
-        // console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records[0]);
+        console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records);
         if (!updateGraphEdgeesult) {
             console.error(updateGraphEdgeesult);
             throw new Error('Internal Server Error');
