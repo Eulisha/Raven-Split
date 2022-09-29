@@ -26,7 +26,7 @@ const signUp = async (email, password, name, cellphone, provider) => {
 };
 const signIn = async (email) => {
     try {
-        const sql = `SELECT * FROM users WHERE email = ? AND status = 1`;
+        const sql = 'SELECT * FROM users WHERE email = ? AND status = 1';
         const data = [email];
         const [result] = await pool.execute(sql, data);
         return result;
@@ -62,4 +62,18 @@ const getUserGroups = async (uid) => {
     }
 };
 
-module.exports = { signUp, signIn, checkExist, getUserGroupRole, getUserGroups };
+const getUserNames = async (conn, uid1, uid2) => {
+    console.log('model: uid1, uid2: ', uid1, uid2);
+    try {
+        const sql = 'SELECT id, name FROM `users` WHERE id IN (?,?) AND status = ?';
+        const data = [uid1, uid2, 1];
+        const [result] = await pool.execute(sql, data);
+        console.log(result);
+        return result;
+    } catch (err) {
+        console.error('ERROR AT getUserGroups: ', err);
+        return null;
+    }
+};
+
+module.exports = { signUp, signIn, checkExist, getUserGroupRole, getUserGroups, getUserNames };
