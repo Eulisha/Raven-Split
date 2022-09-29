@@ -3,7 +3,7 @@ const { postDebt, deleteDebt, updateDebt, postSettle, postSettlePair, postSettle
 const { getDebts, getDebtDetail, getMeberBalances, getSettle, getUserBalances, getDebtPages } = require('../controllers/get_debt_controller');
 const { authentication, authorization } = require('../util/auth');
 const { checkIfOnSettling } = require('../util/onSettleLock');
-const { validate, formSubmitRule } = require('../util/validate');
+const { validate, debtFormSubmitRule, settleFormSubmitRule } = require('../util/validate');
 const debtRoute = express.Router();
 
 debtRoute.get('/debts/:id', authentication, authorization, getDebts);
@@ -11,11 +11,11 @@ debtRoute.get('/balances/:id', authentication, authorization, getMeberBalances);
 debtRoute.get('/detail/:id/:debtId', authentication, authorization, getDebtDetail);
 debtRoute.get('/pages/:id', authentication, authorization, getDebtPages);
 debtRoute.get('/settle/:id', authentication, checkIfOnSettling, authorization, getSettle);
-debtRoute.post('/debt/:id', authentication, checkIfOnSettling, formSubmitRule, validate, authorization, postDebt);
-debtRoute.post('/settle/:id', authentication, checkIfOnSettling, authorization, postSettle);
-debtRoute.post('/settle-pair/:id/:uid1/:uid2', authentication, checkIfOnSettling, authorization, postSettlePair);
+debtRoute.post('/debt/:id', authentication, checkIfOnSettling, debtFormSubmitRule, validate, authorization, postDebt);
+debtRoute.post('/settle/:id', authentication, checkIfOnSettling, settleFormSubmitRule, validate, authorization, postSettle);
+debtRoute.post('/settle-pair/:id/:uid1/:uid2', authentication, checkIfOnSettling, settleFormSubmitRule, validate, authorization, postSettlePair);
 debtRoute.post('/settle-done/:id', authentication, checkIfOnSettling, authorization, postSettleDone);
-debtRoute.put('/debt/:id/:debtId', authentication, checkIfOnSettling, formSubmitRule, validate, authorization, updateDebt);
+debtRoute.put('/debt/:id/:debtId', authentication, checkIfOnSettling, debtFormSubmitRule, validate, authorization, updateDebt);
 debtRoute.delete('/debt/:id/:debtId', authentication, checkIfOnSettling, authorization, deleteDebt);
 debtRoute.delete('/pair-debts');
 debtRoute.delete('/group-debts/:id');
