@@ -108,7 +108,8 @@ const updateDebt = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
             if (debtMainOld.length == 0 || debtDetailOld.length == 0) {
-                throw new Error('Previous debt record not found.');
+                console.error('mysql search result :', debtMainOld);
+                throw new Error("Can't fount correspond debt record.");
             }
             console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 

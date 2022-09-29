@@ -15,7 +15,7 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 };
 
 const authentication = async (req, res, next) => {
-    console.log(req.headers.authorization, req.id);
+    console.log(req.headers.authorization, req.path);
     console.log('token: ', req.get('authorization'));
     let accessToken = req.get('authorization');
     if (!accessToken) {
