@@ -1,7 +1,6 @@
 const Debt = require('../models/debt_model');
 const pool = require('../config/mysql');
 
-//FIXME:updatebalance 現在有錯
 const updateBalance = async (conn, gid, debtMain, debtDetail) => {
     try {
         console.log('@updatebalance@ gid, main, detail: ', gid, debtMain, debtDetail);
@@ -17,8 +16,8 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                 console.error('getBalance fail : ', result);
                 throw new Error('Internal Server Error');
             }
-            if (getBalanceResult.length != 0) {
-                console.log('balance1:');
+            if (getBalanceResult.length !== 0) {
+                console.log('balance  + :');
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let balanceId = getBalanceResult[0].id;
                 let originalDebt = getBalanceResult[0].amount;
@@ -49,8 +48,8 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                     console.error('getBalance fail : ', result);
                     throw new Error('Internal Server Error');
                 }
-                if (getBalanceResult.length != 0) {
-                    console.log('balance2:');
+                if (getBalanceResult.length !== 0) {
+                    console.log('balance - :');
                     // 原本債務關係和目前相反 borrower <-own-lender
                     let balanceId = getBalanceResult[0].id;
                     let originalDebt = getBalanceResult[0].amount;
@@ -65,6 +64,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                             throw new Error('Internal Server Error');
                         }
                     } else {
+                        console.log('balance x :');
                         console.log('<0');
                         // 改為 borrower-own->lender
                         const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, -newBalance);
@@ -73,13 +73,23 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                             throw new Error('Internal Server Error');
                         }
                     }
-                    //都沒查到，新增一筆
                 } else {
+                    //都沒查到，新增一筆
                     console.log("can't find, create one");
-                    const result = await Debt.createBalance(conn, gid, debt.borrower, debtMain.lender, debt.amount);
-                    if (!result) {
-                        console.error('createBalance fail : ', result);
-                        throw new Error('Internal Server Error');
+                    if (debt.amount > 0) {
+                        console.log('>0');
+                        const result = await Debt.createBalance(conn, gid, debt.borrower, debtMain.lender, debt.amount);
+                        if (!result) {
+                            console.error('createBalance fail : ', result);
+                            throw new Error('Internal Server Error');
+                        }
+                    } else {
+                        console.log('<0');
+                        const result = await Debt.createBalance(conn, gid, debtMain.lender, debt.borrower, -debt.amount);
+                        if (!result) {
+                            console.error('createBalance fail : ', result);
+                            throw new Error('Internal Server Error');
+                        }
                     }
                 }
             }
