@@ -170,7 +170,7 @@ const checkUserExist = async (req, res) => {
     }
     if (checkExistResult.length == 0) {
         console.log('checkExist result:', checkExistResult, '=> User not exist.');
-        return res.status(400).json({ err: 'User not exist.' });
+        return res.status(404).json({ err: 'User not exist.' });
     }
     console.log(checkExistResult[0]);
     res.status(200).json({ data: checkExistResult[0] });

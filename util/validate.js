@@ -38,7 +38,7 @@ const settleFormSubmitRule = [
     body('settle_main.date').isAfter('2000-01-01').isBefore('2050-01-01').withMessage('Out of supported date range.'),
     // body(['settle_detail.*.amount']).isInt({ min: 1, max: 100000000 }).withMessage('Amount should not less than 1 or greater than 100000000.'),
 ];
-const groupFormSubmitRule = [body('*').notEmpty().withMessage("Can't Have empty column.")];
+const groupFormSubmitRule = [body('group_name').notEmpty().withMessage("Can't Have empty column.")];
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);

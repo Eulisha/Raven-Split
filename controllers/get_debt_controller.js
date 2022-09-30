@@ -177,7 +177,7 @@ const getSettle = async (req, res) => {
             if (!resultGetGraph.length == 0) {
                 console.error('getGraph fail get no match:', resultGetGraph);
                 // session.close();
-                return res.status(400).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
+                return res.status(404).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
             }
             const graph = resultGetGraph.records.map((record) => {
                 let amount = record.get('amount').toNumber();

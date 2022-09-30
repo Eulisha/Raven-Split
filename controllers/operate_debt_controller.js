@@ -318,7 +318,7 @@ const postSettle = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
             await conn.commit();
-            return res.status(400).json({ err: 'No matched result' });
+            return res.status(404).json({ err: 'No matched result' });
         }
 
         // 2) MySql clear balance of this pair
@@ -445,7 +445,7 @@ const postSettlePair = async (req, res) => {
                 throw new Error('Internal Server Error');
             }
             await conn.commit();
-            return res.status(400).json({ err: 'Balances not exist.' });
+            return res.status(404).json({ err: 'Balances not exist.' });
         }
 
         // 2) MySql create a reverse debt as settle
