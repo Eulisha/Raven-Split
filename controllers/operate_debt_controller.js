@@ -117,7 +117,8 @@ const updateDebt = async (req, res) => {
         //找不到或已經更新了
         if (debtMainOld.length === 0 || debtDetailOld.length === 0) {
             console.error('mysql getDebt getDebtDetailTrx no match :', debtMainOld.length, debtDetailOld.length);
-            return res.status(400).json({ err: "Can't fount correspond debt record. Please refresh and retry." });
+            conn.rollback();
+            return res.status(404).json({ err: 'DebtId not exist' });
         }
         console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 
@@ -223,7 +224,8 @@ const deleteDebt = async (req, res) => {
         //找不到或已經更新了
         if (debtMain.length === 0 || debtDetail.length === 0) {
             console.error('mysql getDebt getDebtDetailTrx no match :', debtMain.length, debtDetail.length);
-            return res.status(400).json({ err: "Can't fount correspond debt record. Please refresh and retry." });
+            conn.rollback();
+            return res.status(404).json({ err: 'DebtId not exist' });
         }
         console.log('debtMain, debtDetail: ', debtMain, debtDetail);
 

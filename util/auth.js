@@ -19,11 +19,13 @@ const authentication = async (req, res, next) => {
     console.log('token: ', req.get('authorization'));
     let accessToken = req.get('authorization');
     if (!accessToken) {
+        console.error('401', accessToken);
         return res.status(401).json({ err: 'Unauthorized' });
     }
 
     accessToken = accessToken.replace('Bearer ', '');
     if (accessToken == 'null') {
+        console.error('401', accessToken);
         return res.status(401).json({ err: 'Unauthorized' });
     }
 
@@ -32,13 +34,13 @@ const authentication = async (req, res, next) => {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
         console.log('token decoded id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
-            console.log('verifyJWT result:', decodedUserInfo);
+            console.error('verifyJWT result:', decodedUserInfo);
             return res.status(403).json({ err: 'Forbidden' });
         }
         req.user = decodedUserInfo;
         return next();
     } catch (err) {
-        console.log('verifyJWT result:', err);
+        console.error('verifyJWT result:', err);
         return res.status(403).json({ err: 'Forbidden' });
     }
 };
@@ -47,15 +49,15 @@ const authorization = async (req, res, next) => {
     // get user-groups and roles
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.log('uid, gid: ', uid, gid, req.id);
+    console.info('uid, gid: ', uid, gid, req.id);
     const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
     if (!userGroupRole) {
-        console.log('getUserGroupRole result:', userGroupRole);
+        console.error('getUserGroupRole result:', userGroupRole);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
     //沒查到role, 沒權限, 擋回
     if (userGroupRole.length == 0) {
-        console.log('getUserGroupRole result:', userGroupRole);
+        console.error('getUserGroupRole result:', userGroupRole);
         return res.status(403).json({ err: 'No authorization.' });
     }
     req.userGroupRole = userGroupRole[0];
