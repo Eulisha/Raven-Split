@@ -64,8 +64,14 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                 }
             } else {
                 //找不到, 新增一筆
-                console.debug('balance5: x', 'borrower', neo4j.int(debtDetail[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debtDetail[ind].amount));
-                newMap.push({ borrower: neo4j.int(debtDetail[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debtDetail[ind].amount) });
+                let debt = debtDetail[ind].amount;
+                if (debt > 0) {
+                    console.debug('balance5: x+', 'borrower', neo4j.int(debtDetail[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debt));
+                    newMap.push({ borrower: neo4j.int(debtDetail[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debt) });
+                } else {
+                    console.debug('balance5: x-', 'borrower', neo4j.int(debtMain.lender), 'lender', neo4j.int(debtDetail[ind].borrower), neo4j.int(-debt));
+                    newMap.push({ borrower: neo4j.int(debtMain.lender), lender: neo4j.int(debtDetail[ind].borrower), amount: neo4j.int(-debt) });
+                }
             }
         });
         //更新線
