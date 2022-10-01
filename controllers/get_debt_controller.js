@@ -133,19 +133,21 @@ const getMeberBalances = async (req, res) => {
             throw new Error('Internal Server Error');
         }
 
-        let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, detail:{borrower:null, lender:null, amount:null}}}
+        let balancesGroupByUser = {}; //{uid:{uid:null, balance:null, possitive:null, negative:null, detail:{borrower:null, lender:null, amount:null}}}
         //把所有成員各自的object建好
         for (let user of groupUserIds) {
-            balancesGroupByUser[user.uid] = { uid: user.uid, balance: 0, detail: [] };
+            balancesGroupByUser[user.uid] = { uid: user.uid, balance: 0, possitive: 0, negative: 0, detail: [] };
         }
         console.debug('initial object: ', balancesGroupByUser);
         //group by uid
         for (let balance of balances) {
             //存borrower的
             balancesGroupByUser[balance.borrower]['balance'] -= balance.amount;
+            balancesGroupByUser[balance.borrower]['negative'] += 1;
             balancesGroupByUser[balance.borrower]['detail'].push(balance);
             //存lender的
             balancesGroupByUser[balance.lender]['balance'] += balance.amount;
+            balancesGroupByUser[balance.lender]['possitive'] += 1;
             balancesGroupByUser[balance.lender]['detail'].push(balance);
         }
         balancesGroupByUser = Object.values(balancesGroupByUser);
