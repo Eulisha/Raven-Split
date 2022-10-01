@@ -23,7 +23,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                 let originalDebt = getBalanceResult[0].amount;
                 let newBalance = originalDebt + debt.amount; //add more debt
                 console.log('balanceId:', balanceId, 'originalDebt: ', originalDebt, 'newBalance: ', newBalance);
-                if (newBalance >= 0) {
+                if (newBalance > 0) {
                     console.log('>0');
                     //  維持 borrower-own->lender
                     const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, newBalance);
@@ -31,13 +31,20 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                         console.error('updateBalance fail : ', result);
                         throw new Error('Internal Server Error');
                     }
-                } else {
+                } else if (newBalance < 0) {
                     console.log('<0');
                     // 改為 borrower <-own-lender
                     //如果是update debt，會把舊的帳的值先變成負的，再呼叫這個function做計算，所以確實有可能是負的
                     const result = await Debt.updateBalance(conn, balanceId, debtMain.lender, debt.borrower, -newBalance);
                     if (!result) {
                         console.error('updateBalance fail : ', result);
+                        throw new Error('Internal Server Error');
+                    }
+                } else if (newBalance === 0) {
+                    //帳結清了，刪除balance
+                    const result = await Debt.deleteDebtBalance(conn, balanceId);
+                    if (!result) {
+                        console.error('deleteDebtBalance fail : ', result);
                         throw new Error('Internal Server Error');
                     }
                 }
@@ -63,8 +70,7 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                             console.error('updateBalance fail : ', result);
                             throw new Error('Internal Server Error');
                         }
-                    } else {
-                        console.log('balance x :');
+                    } else if (newBalance < 0) {
                         console.log('<0');
                         // 改為 borrower-own->lender
                         const result = await Debt.updateBalance(conn, balanceId, debt.borrower, debtMain.lender, -newBalance);
@@ -72,10 +78,17 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
                             console.error('updateBalance fail : ', result);
                             throw new Error('Internal Server Error');
                         }
+                    } else if (newBalance === 0) {
+                        //帳結清了，刪除balance
+                        const result = await Debt.deleteDebtBalance(conn, balanceId);
+                        if (!result) {
+                            console.error('deleteDebtBalance fail : ', result);
+                            throw new Error('Internal Server Error');
+                        }
                     }
                 } else {
                     //都沒查到，新增一筆
-                    console.log("can't find, create one");
+                    console.log('balance x create one');
                     if (debt.amount > 0) {
                         console.log('>0');
                         const result = await Debt.createBalance(conn, gid, debt.borrower, debtMain.lender, debt.amount);
