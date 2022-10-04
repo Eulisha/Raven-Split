@@ -6,20 +6,13 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
     try {
         let map = [];
         let debtDetailExcluded = [];
-        let selfInd;
-        debtDetail.forEach((debt, ind) => {
-            console.debug(debt, ind);
-            console.debug(debt.borrower != debtMain.lender, debt.amount != 0);
+        debtDetail.forEach((debt) => {
+            console.debug(debt);
             if (debt.borrower != debtMain.lender && debt.amount != 0) {
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
                 debtDetailExcluded.push({ borrower: debt.borrower, amount: debt.amount });
             }
         });
-        // console.debug(selfInd);
-        // if (selfInd !== undefined) {
-        //不能用!selfInd 如果 index = 0 會被判斷為false
-        // debtDetail.splice(selfInd, 1);
-        // }
         console.debug('map, debtDetailExcluded: ', map, debtDetailExcluded);
         //上面會需要debtDetail和map兩個的原因是因為一個是要丟進去neo的需要先做數字處理，另一個是拿來比對的不要有數字處理
 
@@ -195,6 +188,7 @@ const getBestPath = async (txc, gid) => {
                     let bottleneckValue = 0;
                     let pathBlock = false;
                     if (path.length != 1) {
+                        //如果等於1代表示source直接到sink的path
                         //第四層：iterate edges in path
                         // console.log('扣除前：', graph);
                         let debts = [];
