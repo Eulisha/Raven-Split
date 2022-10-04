@@ -44,11 +44,14 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
         //先查出原本的債務線
         const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);
         let updateArray = [];
-        for (let oldDebt of getEdgeResult.records) {
-            console.log('oldDebt: ', oldDebt);
-            let start = oldDebt.get('start').toNumber();
-            let end = oldDebt.get('end').toNumber();
-            let originalDebt = oldDebt.get('amount').toNumber();
+
+        // for (let oldDebt of getEdgeResult.records) {
+        const oldDebts = getEdgeResult.records;
+        for (let ind = 0; ind < oldDebts.length; ind++) {
+            console.log('oldDebt: ', oldDebts[ind]);
+            let start = oldDebts[ind].get('start').toNumber();
+            let end = oldDebts[ind].get('end').toNumber();
+            let originalDebt = oldDebts[ind].get('amount').toNumber();
             let newBalance;
             console.log('current:', start, end, originalDebt);
 
