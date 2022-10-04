@@ -61,7 +61,7 @@ const postDebt = async (req, res) => {
         }
         //4)NEO4j更新best path graph
         console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
+        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
             console.error(updateGraph);
             throw new Error('Internal Server Error');
@@ -171,7 +171,7 @@ const updateDebt = async (req, res) => {
         }
         //4)NEO4j更新best path graph
         console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
+        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
@@ -260,7 +260,7 @@ const deleteDebt = async (req, res) => {
         }
         // 4) Neo4j update best path graph
         console.log('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
+        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
             throw new Error('Internal Server Error');
         }
@@ -527,7 +527,7 @@ const postSettlePair = async (req, res) => {
         }
         // 6) Neo4j update best path graph
         console.debug('controller debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, debtsForUpdate);
+        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
             console.error(updateGraph);
             throw new Error('Internal Server Error');

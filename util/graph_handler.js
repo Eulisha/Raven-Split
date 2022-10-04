@@ -34,6 +34,7 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
             let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
             console.log('current:', start, end, originalDebt);
+
             if (start == debtDetail[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
                 let newBalance = originalDebt + debtDetail[ind].amount;
@@ -46,7 +47,7 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
                     newBalance = -newBalance;
                     console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //刪除本來的線
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
                 }
             } else if (end == debtDetail[ind].borrower) {
                 // 原本債務關係和目前相反 borrower<-own-lender

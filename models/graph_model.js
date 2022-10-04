@@ -58,15 +58,15 @@ const updateEdge = async (txc, gid, newMap) => {
     }
 };
 //更新最佳解
-const updateBestPath = async (txc, debtsForUpdate) => {
+const updateBestPath = async (txc, gid, debtsForUpdate) => {
     console.info('graph model: debtsForUpdate: ', debtsForUpdate);
     try {
         const result = await txc.run(
             // 'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = debt.amount', //改成直接算好set值
             //FIXME:這邊沒帶gid可能會錯？？
-            'UNWIND $debts AS debt MATCH (n:person)-[r:own]->(m:person) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = r.amount + debt.amount',
+            'MATCH (g:group{name:$gid}) UNWIND $debts AS debt MATCH (g)<-[:member_of]-(n:person)-[r:own]->(m:person)-[:member_of]->(g) WHERE n.name = debt.borrower AND m.name = debt.lender SET r.amount = r.amount + debt.amount',
 
-            { debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
+            { gid, debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
         );
         console.debug('updatebestpath: ', result.summary.updateStatistics);
         return true;
