@@ -1,6 +1,31 @@
 const Graph = require('../models/graph_model');
 const { neo4j, driver } = require('../config/neo4j');
 
+const updateArrayLogicer = async (updateArray, start, end, newBalance) => {
+    let borrower;
+    let lender;
+    if (newBalance === 0) {
+        console.debug('balance: = 0');
+        await Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
+        return;
+    }
+
+    if (newBalance > 0) {
+        // 維持borrower <-own-lender
+        console.debug('balance: > 0 ', 'borrower', start, 'lender', end, 'newBalance', newBalance);
+        borrower = neo4j.int(start);
+        lender = neo4j.int(end);
+    } else if (newBalance < 0) {
+        // 改為borrower-own->lender
+        console.debug('balance: < 0 ', 'borrower', end, 'lender', start, 'newBalance', newBalance);
+        borrower = neo4j.int(end);
+        lender = neo4j.int(start);
+        await Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
+    }
+    updateArray.push({ borrower, lender, amount: neo4j.int(Math.abs(newBalance)) });
+    return updateArray;
+};
+
 const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
     console.debug('gid, debtDetail, debtMain', gid, debtDetail, debtMain);
     try {
@@ -18,63 +43,39 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
 
         //先查出原本的債務線
         const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);
-        let newMap = [];
-        getEdgeResult.records.forEach((oldDebt, ind) => {
+        let updateArray = [];
+        for (let oldDebt of getEdgeResult.records) {
             console.log('oldDebt: ', oldDebt);
             let start = oldDebt.get('start').toNumber();
             let end = oldDebt.get('end').toNumber();
             let originalDebt = oldDebt.get('amount').toNumber();
+            let newBalance;
             console.log('current:', start, end, originalDebt);
 
             if (start == debtDetailExcluded[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
-                let newBalance = originalDebt + debtDetailExcluded[ind].amount;
-                if (newBalance > 0) {
-                    // 維持borrower <-own-lender
-                    console.debug('balance1: ++', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
-                    newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
-                } else if (newBalance < 0) {
-                    // 改為borrower-own->lender //如果是update debt，會把舊的帳的值先變成負的，再呼叫這個function做計算，所以確實有可能是負的
-                    newBalance = -newBalance;
-                    console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
-                    newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
-                } else if (newBalance === 0) {
-                    console.debug('balance: +=');
-                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
-                }
+                newBalance = originalDebt + debtDetailExcluded[ind].amount;
             } else if (end == debtDetailExcluded[ind].borrower) {
                 // 原本債務關係和目前相反 borrower<-own-lender
-                let newBalance = originalDebt - debtDetailExcluded[ind].amount;
-                if (newBalance > 0) {
-                    // 維持borrower <-own-lender
-                    console.debug('balance3: --', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
-                    newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
-                } else if (newBalance < 0) {
-                    // 改為borrower-own->lender
-                    newBalance = -newBalance;
-                    console.debug('balance4: -+', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
-                    newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
-                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
-                } else if (newBalance === 0) {
-                    console.debug('balance: -=');
-                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
-                }
+                newBalance = originalDebt - debtDetailExcluded[ind].amount;
             } else {
                 //找不到, 新增一筆
-                let debt = debtDetailExcluded[ind].amount;
+                newBalance = debtDetailExcluded[ind].amount;
                 if (debt > 0) {
                     console.debug('balance5: x+', 'borrower', neo4j.int(debtDetailExcluded[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debt));
-                    newMap.push({ borrower: neo4j.int(debtDetailExcluded[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debt) });
+                    start = debtDetailExcluded[ind].borrower;
+                    end = debtMain.lender;
                 } else {
                     console.debug('balance5: x-', 'borrower', neo4j.int(debtMain.lender), 'lender', neo4j.int(debtDetailExcluded[ind].borrower), neo4j.int(-debt));
-                    newMap.push({ borrower: neo4j.int(debtMain.lender), lender: neo4j.int(debtDetailExcluded[ind].borrower), amount: neo4j.int(-debt) });
+                    start = debtMain.lender;
+                    end = debtDetailExcluded[ind].borrower;
                 }
             }
-        });
+            updateArray = await updateArrayLogicer(updateArray, start, end, newBalance);
+        }
         //更新線
-        console.log('for Neo newMap:   ', newMap);
-        const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), newMap);
+        console.log('for Neo updateArray:   ', updateArray);
+        const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), updateArray);
         console.log('updateGraphEdgeesult: ', updateGraphEdgeesult.records);
         if (!updateGraphEdgeesult) {
             console.error(updateGraphEdgeesult);
