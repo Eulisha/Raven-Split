@@ -5,25 +5,23 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
     console.debug('gid, debtDetail, debtMain', gid, debtDetail, debtMain);
     try {
         let map = [];
+        let debtDetailExcluded = [];
         let selfInd;
         debtDetail.forEach((debt, ind) => {
             console.debug(debt, ind);
-            console.debug(Number(debt.borrower) != Number(debtMain.lender));
-            if (Number(debt.borrower) != Number(debtMain.lender)) {
-                //不是自己的帳才放進來
-                console.debug('inside if: ', debt, ind);
+            console.debug(debt.borrower != debtMain.lender, debt.amount != 0);
+            if (debt.borrower != debtMain.lender && debt.amount != 0) {
                 map.push({ name: neo4j.int(debt.borrower), amount: neo4j.int(debt.amount) }); //處理neo4j integer
-            } else {
-                console.debug('inside if: ', debt, ind);
-                selfInd = ind;
+                debtDetailExcluded.push({ borrower: debt.borrower, amount: debt.amount });
             }
         });
-        console.debug(selfInd);
-        if (selfInd !== undefined) {
-            //用!selfInd 如果 index = 0 會被判斷為false
-            debtDetail.splice(selfInd, 1);
-        }
-        console.debug('map, updated-debtDetail: ', map, debtDetail);
+        // console.debug(selfInd);
+        // if (selfInd !== undefined) {
+        //不能用!selfInd 如果 index = 0 會被判斷為false
+        // debtDetail.splice(selfInd, 1);
+        // }
+        console.debug('map, debtDetailExcluded: ', map, debtDetailExcluded);
+        //上面會需要debtDetail和map兩個的原因是因為一個是要丟進去neo的需要先做數字處理，另一個是拿來比對的不要有數字處理
 
         //先查出原本的債務線
         const getEdgeResult = await Graph.getCurrEdge(txc, neo4j.int(gid), neo4j.int(debtMain.lender), map);
@@ -35,43 +33,49 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
             let originalDebt = oldDebt.get('amount').toNumber();
             console.log('current:', start, end, originalDebt);
 
-            if (start == debtDetail[ind].borrower) {
+            if (start == debtDetailExcluded[ind].borrower) {
                 // 原本債務關係和目前一樣 borrower-own->lender
-                let newBalance = originalDebt + debtDetail[ind].amount;
-                if (newBalance >= 0) {
+                let newBalance = originalDebt + debtDetailExcluded[ind].amount;
+                if (newBalance > 0) {
                     // 維持borrower <-own-lender
                     console.debug('balance1: ++', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
-                } else {
+                } else if (newBalance < 0) {
                     // 改為borrower-own->lender //如果是update debt，會把舊的帳的值先變成負的，再呼叫這個function做計算，所以確實有可能是負的
                     newBalance = -newBalance;
                     console.debug('balance2: +-', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
                     Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
+                } else if (newBalance === 0) {
+                    console.debug('balance: +=');
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
                 }
-            } else if (end == debtDetail[ind].borrower) {
+            } else if (end == debtDetailExcluded[ind].borrower) {
                 // 原本債務關係和目前相反 borrower<-own-lender
-                let newBalance = originalDebt - debtDetail[ind].amount;
-                if (newBalance >= 0) {
+                let newBalance = originalDebt - debtDetailExcluded[ind].amount;
+                if (newBalance > 0) {
                     // 維持borrower <-own-lender
                     console.debug('balance3: --', 'borrower', neo4j.int(start), 'lender', neo4j.int(end), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(start), lender: neo4j.int(end), amount: neo4j.int(newBalance) });
-                } else {
+                } else if (newBalance < 0) {
                     // 改為borrower-own->lender
                     newBalance = -newBalance;
                     console.debug('balance4: -+', 'borrower', neo4j.int(end), 'lender', neo4j.int(start), neo4j.int(newBalance));
                     newMap.push({ borrower: neo4j.int(end), lender: neo4j.int(start), amount: neo4j.int(newBalance) });
                     Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
+                } else if (newBalance === 0) {
+                    console.debug('balance: -=');
+                    Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
                 }
             } else {
                 //找不到, 新增一筆
-                let debt = debtDetail[ind].amount;
+                let debt = debtDetailExcluded[ind].amount;
                 if (debt > 0) {
-                    console.debug('balance5: x+', 'borrower', neo4j.int(debtDetail[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debt));
-                    newMap.push({ borrower: neo4j.int(debtDetail[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debt) });
+                    console.debug('balance5: x+', 'borrower', neo4j.int(debtDetailExcluded[ind].borrower), 'lender', neo4j.int(debtMain.lender), neo4j.int(debt));
+                    newMap.push({ borrower: neo4j.int(debtDetailExcluded[ind].borrower), lender: neo4j.int(debtMain.lender), amount: neo4j.int(debt) });
                 } else {
-                    console.debug('balance5: x-', 'borrower', neo4j.int(debtMain.lender), 'lender', neo4j.int(debtDetail[ind].borrower), neo4j.int(-debt));
-                    newMap.push({ borrower: neo4j.int(debtMain.lender), lender: neo4j.int(debtDetail[ind].borrower), amount: neo4j.int(-debt) });
+                    console.debug('balance5: x-', 'borrower', neo4j.int(debtMain.lender), 'lender', neo4j.int(debtDetailExcluded[ind].borrower), neo4j.int(-debt));
+                    newMap.push({ borrower: neo4j.int(debtMain.lender), lender: neo4j.int(debtDetailExcluded[ind].borrower), amount: neo4j.int(-debt) });
                 }
             }
         });

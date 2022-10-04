@@ -10,6 +10,10 @@ const updateBalance = async (conn, gid, debtMain, debtDetail) => {
             if (debt.borrower == debtMain.lender) {
                 continue;
             }
+            // 剔除金額是0的帳
+            if (debt.amount === 0) {
+                continue;
+            }
             //查正向 borrower-own->lender
             const getBalanceResult = await Debt.getBalance(conn, gid, debt.borrower, debtMain.lender);
             if (!getBalanceResult) {
