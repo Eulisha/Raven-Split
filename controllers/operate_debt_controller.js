@@ -61,7 +61,7 @@ const postDebt = async (req, res) => {
         }
         //4)NEO4j更新best path graph
         console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
+        const updateGraph = await Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
             console.error(updateGraph);
             throw new Error('Internal Server Error');

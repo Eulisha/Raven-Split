@@ -87,6 +87,7 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
     }
 };
 const getBestPath = async (txc, gid) => {
+    console.log('$$$$$$$$開始bestpath');
     try {
         const graph = {};
         const allNodeList = [];
@@ -97,7 +98,7 @@ const getBestPath = async (txc, gid) => {
         // 1) Neo4j get all path
         try {
             // 1-1) 查詢圖中所有node
-            console.log('TO Neo allNode:  ', neo4j.int(gid));
+            // console.log('TO Neo allNode:  ', neo4j.int(gid));
             const allNodesResult = await Graph.allNodes(txc, neo4j.int(gid));
             allNodesResult.records.forEach((element) => {
                 let name = element.get('name').toNumber();
@@ -108,7 +109,7 @@ const getBestPath = async (txc, gid) => {
 
             // 1-2) 查每個source出去的edge數量
             for (let source of allNodeList) {
-                console.log('To Neo sourceEdge:  ', neo4j.int(gid), neo4j.int(source));
+                // console.log('To Neo sourceEdge:  ', neo4j.int(gid), neo4j.int(source));
                 const sourceEdgeResult = await Graph.sourceEdge(txc, neo4j.int(gid), neo4j.int(source));
                 pathsStructure[source] = { sinksSummary: { sinks: [], qty: 0 }, sinks: {} };
                 pathsStructure[source].sinksSummary.qty = sourceEdgeResult.records.length; //紀錄qty
@@ -128,23 +129,24 @@ const getBestPath = async (txc, gid) => {
 
         //第一層：iterate sources
         for (let source of order) {
-            // console.log('source: ', source.source);
+            console.log('source: ', source.source);
             let currentSource = source.source; //當前的source
             // 1-3) 查所有的路徑
-            console.log('To Neo allPath:  ', neo4j.int(gid), neo4j.int(currentSource));
+            // console.log('To Neo allPath:  gid, source', neo4j.int(gid), neo4j.int(currentSource));
             const pathsResult = await Graph.allPaths(txc, neo4j.int(gid), neo4j.int(currentSource));
             // console.log(pathsResult);
             //第二層：iterate paths in source
             for (let i = 0; i < pathsResult.records.length; i++) {
                 const sink = pathsResult.records[i]._fields[0].end.properties.name.toNumber(); //當前path的sink
-                // console.log('sink', sink);
+                console.log('source-sink', currentSource, sink);
                 if (!pathsStructure[currentSource].sinksSummary.sinks.includes(sink)) {
                     //代表和這個人沒有直接的借貸關係
                     continue;
                 }
                 //第三層：iterate edges in path
                 let edges = []; //組成path的碎片陣列
-                pathsResult.records[i]._fields[0].segments.forEach((edge) => {
+                let hasZero = false; //判斷是否路徑上有零
+                for (let edge of pathsResult.records[i]._fields[0].segments) {
                     console.debug(
                         'From neo edge:  ',
                         'start:',
@@ -154,23 +156,34 @@ const getBestPath = async (txc, gid) => {
                         'end:',
                         edge.end.properties.name.toNumber()
                     );
+                    console.log(edge.start.properties.name.toNumber(), edge.end.properties.name.toNumber(), edge.relationship.properties.amount.toNumber());
+                    if (edge.relationship.properties.amount.toNumber() === 0) {
+                        console.log('in');
+                        hasZero = true;
+                        await Graph.deletePath(txc, neo4j.int(gid), edge.start.properties.name, edge.end.properties.name); //把零的重圖上刪掉
+                    }
                     //更新欠款圖graph的debt
                     graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount.toNumber(); //TODO:不確定為什麼這邊不需要.toNumber
                     // graph[edge.start.properties.name.toNumber()][edge.end.properties.name.toNumber()] = edge.relationship.properties.amount;
                     //將碎片放進陣列中
                     edges.push([edge.start.properties.name.toNumber(), edge.end.properties.name.toNumber()]);
                     // console.log('放碎片：', edges);
-                });
-                //更新路徑表pathsStructure
+                }
+                //如果還沒有建過該sink的array
                 if (!pathsStructure[currentSource].sinks[sink]) {
+                    console.log('!pathsStructure');
                     pathsStructure[currentSource].sinks[sink] = [];
                 }
-                pathsStructure[currentSource].sinks[sink].push(edges);
+                //更新路徑表pathsStructure
+                if (!hasZero) {
+                    console.log('放碎片：', edges);
+                    pathsStructure[currentSource].sinks[sink].push(edges);
+                }
                 // console.log('完整碎片組', edges);
             }
         }
-        // console.debug(pathsStructure);
-        // console.debug('最終存好的graph: ', graph);
+        console.debug(JSON.stringify(pathsStructure));
+        console.debug('最終存好的graph: ', graph);
 
         // 3) calculate best path
         // 第一層：iterate sources by order
