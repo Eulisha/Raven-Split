@@ -61,7 +61,13 @@ const postDebt = async (req, res) => {
         }
         //4)NEO4j更新best path graph
         console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = await Graph.updateEdge(txc, neo4j.int(gid), debtsForUpdate);
+
+        let debtsForUpdatePrepared = [];
+        for (let debt of debtsForUpdate) {
+            debtsForUpdatePrepared.push(await GraphHandler.getEdgeToUpdate(txc, gid, debt));
+        }
+        console.log(debtsForUpdatePrepared);
+        const updateGraph = await Graph.updateEdge(txc, neo4j.int(gid), debtsForUpdatePrepared);
         if (!updateGraph) {
             console.error(updateGraph);
             throw new Error('Internal Server Error');

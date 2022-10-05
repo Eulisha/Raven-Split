@@ -10,7 +10,9 @@ const createNodes = async (txc, gid, map) => {
             gid,
             members: map,
         });
-        console.debug('createNodes: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('createNodes: ', result.summary.updateStatistics);
+        }
         return true;
     } catch (err) {
         console.error('ERROR AT createNodes: ', err);
@@ -27,7 +29,9 @@ const getCurrEdge = async (txc, gid, lender, map) => {
             'MATCH (lender:person{name:$lender})-[:member_of]->(g:group{name:$gid}) WITH lender, g UNWIND $borrowers AS b MATCH (borrower:person)-[:member_of]->(g:group{name:$gid}) WHERE borrower.name = b.name WITH lender, borrower MERGE (borrower)-[r:own]-(lender) ON CREATE SET r.amount = $empty RETURN startNode(r).name AS start, endNode(r).name AS end, r.amount AS amount',
             { gid, lender, borrowers: map1, empty: neo4j.int(0) }
         );
-        console.debug('getedge: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('getedge: ', result.summary.updateStatistics);
+        }
         return result;
     } catch (err) {
         console.error('ERROR AT getCurrEdge: ', err);
@@ -37,8 +41,10 @@ const getCurrEdge = async (txc, gid, lender, map) => {
 //更新新的線
 const updateEdge = async (txc, gid, newMap) => {
     console.info('graph model: gid, newMap: ', gid, newMap);
+    console.error('1');
     try {
         let map = newMap;
+        console.error('2');
         const result = await txc.run(
             'UNWIND $debts AS debt MATCH (g:group{name:$gid})<-[:member_of]-(b:person) WHERE b.name = debt.borrower MATCH (g:group{name:$gid})<-[:member_of]-(l:person) WHERE l.name = debt.lender WITH b, l, debt MERGE (b)-[r:own]->(l) SET r.amount = debt.amount return b, l, r',
             // 'MATCH (g:group{name:$gid}) WITH g UNWIND $debts AS debt MATCH (g)<-[:member_of]-(borrower:person)-[r:own]->(lender:person)-[:member_of]->(g) WHERE lender.name = debt.lender AND borrower.name = debt.borrower SET r.amount = debt.amount RETURN r',
@@ -50,7 +56,11 @@ const updateEdge = async (txc, gid, newMap) => {
             }
         );
         // console.log('updateedge: ', result.records);
-        console.debug('updateedge: ', result.summary.updateStatistics);
+        console.error('3');
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('updateedge: ', result.summary.updateStatistics);
+        }
+        console.error('4');
         return true;
     } catch (err) {
         console.error('ERROR AT updateGraphEdge: ', err);
@@ -67,7 +77,10 @@ const updateBestPath = async (txc, gid, debtsForUpdate) => {
 
             { gid, debts: debtsForUpdate } //debtsForUpdate已做過neo4j.int處理
         );
-        console.debug('updatebestpath: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('updatebestpath: ', result.summary.updateStatistics);
+        }
+
         return true;
     } catch (err) {
         console.error('ERROR AT updateGraphBestPath: ', err);
@@ -84,7 +97,9 @@ const deletePath = async (txc, gid, borrower, lender) => {
             { gid, borrower, lender }
         );
         // console.log('deletePath: ', result.records);
-        console.debug('deletePath: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('deletePath: ', result.summary.updateStatistics);
+        }
         return true;
     } catch (err) {
         console.error('ERROR AT deletePath: ', err);
@@ -96,7 +111,9 @@ const deleteBestPath = async (txc, gid) => {
     console.info('graph model: gid:', gid);
     try {
         const result = await txc.run('MATCH (g:group)<-[:member_of]-(n)-[r:own]-(m)-[:member_of]->(g:group) WHERE g.name = $group DELETE r ', { group: gid });
-        console.debug('deleteBestPath: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('deleteBestPath: ', result.summary.updateStatistics);
+        }
         return true;
     } catch (err) {
         console.error('ERROR AT deleteBestPath: ', err);
@@ -114,7 +131,9 @@ const getGraph = async (txc, gid) => {
         const data = { name: gid };
 
         const result = await txc.run(cypher, data);
-        console.debug('getGraph: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('getGraph: ', result.summary.updateStatistics);
+        }
         return result;
     } catch (err) {
         console.error('ERROR AT getGraph: ', err);
@@ -127,7 +146,9 @@ const allNodes = async (txc, gid) => {
     console.info('graph model: gid: ', gid);
     try {
         const result = await txc.run('MATCH (n:person)-[:member_of]-> (:group{name:$gid}) RETURN n.name AS name', { gid });
-        console.debug('allNodes: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('allNodes: ', result.summary.updateStatistics);
+        }
         return result;
     } catch (err) {
         console.error('ERROR AT allNodes: ', err);
@@ -147,7 +168,9 @@ const sourceEdge = async (txc, gid, source) => {
                 lender: source,
             }
         );
-        console.debug('sourceEdge: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('sourceEdge: ', result.summary.updateStatistics);
+        }
         return result;
     } catch (err) {
         console.error('ERROR AT sourceEdge: ', err);
@@ -179,7 +202,9 @@ const allPaths = async (txc, gid, currentSource, sinkNode) => {
                 }
             );
         }
-        console.debug('allPaths: ', result.summary.updateStatistics);
+        if (result.summary.updateStatistics._containsUpdates) {
+            console.debug('allPaths: ', result.summary.updateStatistics);
+        }
         return result;
     } catch (err) {
         console.error('ERROR AT allPaths: ', err);

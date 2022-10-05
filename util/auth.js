@@ -16,7 +16,7 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 
 const authentication = async (req, res, next) => {
     console.log(req.headers.authorization, req.path);
-    console.log('token: ', req.get('authorization'));
+    // console.log('token: ', req.get('authorization'));
     let accessToken = req.get('authorization');
     if (!accessToken) {
         console.error('401', accessToken);
@@ -32,7 +32,7 @@ const authentication = async (req, res, next) => {
     // verify JWT
     try {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
-        console.log('token decoded id: ', decodedUserInfo.id);
+        // console.log('token decoded id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
             console.error('verifyJWT result:', decodedUserInfo);
             return res.status(403).json({ err: 'Forbidden' });
@@ -49,7 +49,8 @@ const authorization = async (req, res, next) => {
     // get user-groups and roles
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.info('uid, gid: ', uid, gid, req.id);
+    // console.info('uid, gid: ', uid, gid, req.id);
+
     const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
     if (!userGroupRole) {
         console.error('getUserGroupRole result:', userGroupRole);

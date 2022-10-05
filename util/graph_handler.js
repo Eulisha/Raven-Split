@@ -20,35 +20,32 @@ const getpreparedDebt = (oldDebt, currDebt) => {
         newBalance = originalDebt - currDebt.amount;
     } else {
         console.error('!!!!!!!!!錯了');
+        return null;
     }
     const preparedDebt = { start, end, newBalance };
     return preparedDebt;
 };
+
 const getpreparedDebtWithNew = (currDebt, lender) => {
     console.info('model: currDebt, lender:', currDebt, lender);
-    newBalance = currDebt.amount; //FIXME:這個有可能是負的嗎??
+    newBalance = currDebt.amount;
     start = currDebt.borrower;
     end = lender;
-    if (newBalance > 0) {
-        console.debug('balance5: x+', 'borrower', neo4j.int(currDebt.borrower), 'lender', neo4j.int(lender));
-        start = currDebt.borrower;
-        end = lender;
-    } else {
-        console.debug('balance5: x-', 'borrower', neo4j.int(lender), 'lender', neo4j.int(currDebt.borrower));
-        start = lender;
-        end = currDebt.borrower;
-    }
+
+    console.debug('balance5: x+', 'borrower', neo4j.int(currDebt.borrower), 'lender', neo4j.int(lender));
+
     const preparedDebt = { start, end, newBalance };
     return preparedDebt;
 };
 const getEdgeToUpdate = async (txc, gid, preparedDebt) => {
     console.info('model: gid, preparedDebt: ', gid, preparedDebt);
-    const { start, end, newBalance } = preparedDebt;
-    await Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
+    let { start, end, newBalance } = preparedDebt;
+    console.log(start, end, newBalance);
     let borrower;
     let lender;
     if (newBalance === 0) {
         console.debug('balance: = 0');
+        await Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //等於0的時候把線刪除
         return;
     }
 
@@ -60,10 +57,13 @@ const getEdgeToUpdate = async (txc, gid, preparedDebt) => {
     } else if (newBalance < 0) {
         // 改為borrower-own->lender
         console.debug('balance: < 0 ', 'borrower', end, 'lender', start, 'newBalance', newBalance);
+        newBalance = -newBalance;
         borrower = neo4j.int(end);
         lender = neo4j.int(start);
+        await Graph.deletePath(txc, neo4j.int(gid), neo4j.int(start), neo4j.int(end)); //因為neo不能直接改反向關係，所以刪除本來的線，下面直接新增
     }
-    return { borrower, lender, amount: neo4j.int(Math.abs(newBalance)) };
+    const edgeToUpdate = { borrower, lender, amount: neo4j.int(newBalance) };
+    return edgeToUpdate;
 };
 
 const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
@@ -96,10 +96,10 @@ const updateGraphEdge = async (txc, gid, debtMain, debtDetail) => {
 
             //比對neo裡的與req進來的債務關係，計算newBalacne
             preparedDebt = getpreparedDebt(oldDebt, currDebt); // { start, end, balance }
-            // //比對失敗找不到, 新增一筆
-            // if (!preparedDebt.newBalance) {
-            //     preparedDebt = getpreparedDebtWithNew(currDebt, debtMain.lender);
-            // }
+            //比對失敗找不到, 新增一筆
+            if (!preparedDebt.start) {
+                preparedDebt = getpreparedDebtWithNew(currDebt, debtMain.lender);
+            }
             console.log('preparedDebt: ', preparedDebt);
 
             let edgeToUpdate = await getEdgeToUpdate(txc, gid, preparedDebt);
@@ -204,7 +204,7 @@ const getBestPath = async (txc, gid) => {
             }
         }
         // console.debug(pathsStructure);
-        // console.debug('最終存好的graph: ', graph);
+        console.debug('最終存好的graph: ', graph);
 
         // 3) calculate best path
         // 第一層：iterate sources by order
@@ -247,14 +247,16 @@ const getBestPath = async (txc, gid) => {
                         //將所有edge都減去瓶頸流量
                         for (let edge of path) {
                             graph[edge[0]][edge[1]] -= bottleneckValue;
+                            console.log('#######', edge[0], [edge[1]], graph[edge[0]][edge[1]], bottleneckValue);
                             // debtsForUpdate.push({ borrowerId: edge[0], lenderId: edge[1], adjust: -bottleneckValue });
-                            let edgeToUpdate = await getEdgeToUpdate(txc, gid, edge[0], edge[1], graph[edge[0]][edge[1]]);
-                            debtsForUpdate.push(edgeToUpdate);
+                            let preparedDebt = { start: edge[0], end: edge[1], newBalance: graph[edge[0]][edge[1]] };
+                            // let edgeToUpdate = await getEdgeToUpdate(txc, gid, preparedDebt);
+                            debtsForUpdate.push(preparedDebt);
                             // debtsForUpdate.push({ borrower: neo4j.int(edge[0]), lender: neo4j.int(edge[1]), amount: neo4j.int(-bottleneckValue) });
                         }
                         // 3-3) 將流量先暫加到totalFlow
                         totalFlow += bottleneckValue;
-                        // console.log('累積ttlflow:', totalFlow);
+                        console.log('累積ttlflow:', totalFlow);
                         // console.log('扣除後：', graph);
                     }
                 }
@@ -266,8 +268,10 @@ const getBestPath = async (txc, gid) => {
                     // console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(graph[source.source][sink]));
                     // debtsForUpdate.push({ borrowerId: neo4j.int(source.source), lenderId: neo4j.int(sink), amount: neo4j.int(graph[source.source][sink]) });
                     // console.log('TO Neo debtsfor update:  ', 'borrower', neo4j.int(source.source), 'lender', neo4j.int(sink), 'amount', neo4j.int(totalFlow));
-                    let edgeToUpdate = await getEdgeToUpdate(txc, gid, source.source, sink, totalFlow);
-                    debtsForUpdate.push(edgeToUpdate);
+                    console.log('###########', source.source, sink, graph[source.source][sink]);
+                    let preparedDebt = { start: source.source, end: sink, newBalance: graph[source.source][sink] };
+                    // let edgeToUpdate = await getEdgeToUpdate(txc, gid, preparedDebt);
+                    debtsForUpdate.push(preparedDebt);
                     // debtsForUpdate.push({ borrower: neo4j.int(source.source), lender: neo4j.int(sink), amount: neo4j.int(totalFlow) });
                     // console.log('加流量：', graph);
                 }
@@ -281,4 +285,4 @@ const getBestPath = async (txc, gid) => {
     }
 };
 
-module.exports = { updateGraphEdge, getBestPath };
+module.exports = { getpreparedDebt, getpreparedDebtWithNew, getEdgeToUpdate, updateGraphEdge, getBestPath };
