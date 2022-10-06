@@ -53,22 +53,22 @@ const postDebt = async (req, res) => {
         console.debug('controoler Neo4j更新線的結果：', updateGraphEdgeesult);
         //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        //3)NEO4j取出所有路徑，並計算出最佳解
-        const [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        if (!debtsForUpdate) {
-            console.error(debtsForUpdate);
-            throw new Error('Internal Server Error');
-        }
-        //4)NEO4j更新best path graph
-        console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = await Graph.updateBestPath(txc, gid, debtsForUpdate);
-        if (!updateGraph) {
-            console.error(updateGraph);
-            throw new Error('Internal Server Error');
-        }
+        // //3)NEO4j取出所有路徑，並計算出最佳解
+        // const [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
+        // if (!debtsForUpdate) {
+        //     console.error(debtsForUpdate);
+        //     throw new Error('Internal Server Error');
+        // }
+        // //4)NEO4j更新best path graph
+        // console.debug('debtsForUpdate:  ', debtsForUpdate);
+        // const updateGraph = await Graph.updateBestPath(txc, gid, debtsForUpdate);
+        // if (!updateGraph) {
+        //     console.error(updateGraph);
+        //     throw new Error('Internal Server Error');
+        // }
 
-        // 5)search update result from dbs just for refernce
-        const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
+        // // 5)search update result from dbs just for refernce
+        // const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
 
         await conn.commit();
         await txc.commit();
@@ -164,20 +164,20 @@ const updateDebt = async (req, res) => {
         console.debug('Neo4j更新線的結果：', oldEdgeesult);
         console.debug('Neo4j更新線的結果：', newEdgeesult);
 
-        //3)NEO4j取出所有路徑，並計算出最佳解
-        let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        if (!debtsForUpdate) {
-            throw new Error('Internal Server Error');
-        }
-        //4)NEO4j更新best path graph
-        console.debug('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
-        if (!updateGraph) {
-            throw new Error('Internal Server Error');
-        }
+        // //3)NEO4j取出所有路徑，並計算出最佳解
+        // let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
+        // if (!debtsForUpdate) {
+        //     throw new Error('Internal Server Error');
+        // }
+        // //4)NEO4j更新best path graph
+        // console.debug('debtsForUpdate:  ', debtsForUpdate);
+        // const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
+        // if (!updateGraph) {
+        //     throw new Error('Internal Server Error');
+        // }
 
-        // search update result from dbs just for refernce
-        const updateResult = updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
+        // // search update result from dbs just for refernce
+        // const updateResult = updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
 
         await conn.commit();
         await txc.commit();
@@ -210,7 +210,7 @@ const deleteDebt = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     const txc = session.beginTransaction();
-    // await session.writeTransaction(async (txc) => {
+
     try {
         //0-1) get previous debt data for balance and best path usage
         const debtMain = await Debt.getDebt(conn, debtId);
@@ -253,20 +253,20 @@ const deleteDebt = async (req, res) => {
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
         //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        // 3) Neo4j get all path and calculate best path
-        let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        if (!debtsForUpdate) {
-            throw new Error('Internal Server Error');
-        }
-        // 4) Neo4j update best path graph
-        console.log('debtsForUpdate:  ', debtsForUpdate);
-        const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
-        if (!updateGraph) {
-            throw new Error('Internal Server Error');
-        }
+        // // 3) Neo4j get all path and calculate best path
+        // let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
+        // if (!debtsForUpdate) {
+        //     throw new Error('Internal Server Error');
+        // }
+        // // 4) Neo4j update best path graph
+        // console.log('debtsForUpdate:  ', debtsForUpdate);
+        // const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
+        // if (!updateGraph) {
+        //     throw new Error('Internal Server Error');
+        // }
 
-        // search update result from dbs just for refernce
-        const updateResult = await updatedBalanceGraph(conn, txc, gid);
+        // // search update result from dbs just for refernce
+        // const updateResult = await updatedBalanceGraph(conn, txc, gid);
 
         await conn.commit();
         await txc.commit();
@@ -281,7 +281,6 @@ const deleteDebt = async (req, res) => {
         conn.release();
         session.close();
     }
-    // });
 };
 
 const postSettle = async (req, res) => {
