@@ -73,7 +73,8 @@ const postDebt = async (req, res) => {
         await conn.commit();
         await txc.commit();
 
-        return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
+        // return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
+        return res.status(200).json({ data: { debtId: debtMainId, detailIds } });
     } catch (err) {
         console.error('ERROR: ', err);
         await conn.rollback();
@@ -182,7 +183,8 @@ const updateDebt = async (req, res) => {
         await conn.commit();
         await txc.commit();
 
-        return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
+        // return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
+        return res.status(200).json({ data: { debtId: debtMainId, detailIds } });
     } catch (err) {
         console.error('ERROR: ', err);
         await conn.rollback();
@@ -271,7 +273,8 @@ const deleteDebt = async (req, res) => {
         await conn.commit();
         await txc.commit();
 
-        return res.status(200).json({ data: { debtId, updateResult } });
+        // return res.status(200).json({ data: { debtId, updateResult } });
+        return res.status(200).json({ data: { debtId } });
     } catch (err) {
         console.error('ERROR: ', err);
         await conn.rollback();
@@ -299,7 +302,7 @@ const postSettle = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     const txc = session.beginTransaction();
-    // await session.writeTransaction(async (txc) => {
+
     try {
         // 1) get group balance from Neo
         const result = await Graph.getGraph(txc, neo4j.int(gid));
@@ -378,7 +381,6 @@ const postSettle = async (req, res) => {
         conn.release();
         session.close();
     }
-    // });
 };
 
 const postSettlePair = async (req, res) => {
