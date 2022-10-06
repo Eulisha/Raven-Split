@@ -10,6 +10,10 @@ const createGroup = async (req, res) => {
     const groupUsers = req.body.groupUsers;
     console.info('controller: group_name, group_type, groupUsers: ', group_name, group_type, groupUsers);
 
+    if (groupUsers.length < 2) {
+        return res.status(400).json({ err: 'A Group should have at least two members.' });
+    }
+
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
     await conn.beginTransaction();
