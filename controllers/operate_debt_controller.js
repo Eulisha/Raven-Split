@@ -7,6 +7,7 @@ const User = require('../models/user_model');
 const GraphHandler = require('../util/graph_handler');
 const { updateBalance } = require('../util/balance_handler');
 const { updatedBalanceGraph } = require('../util/bundle_getter');
+const { produceSqsJob } = require('../util/sqs_producer');
 const Mapping = require('../config/mapping');
 
 const postDebt = async (req, res) => {
@@ -25,7 +26,7 @@ const postDebt = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     const txc = session.beginTransaction();
-    // await session.writeTransaction(async (txc) => {
+
     try {
         //1) MYSQL 新增raw data
         const debtMainId = await Debt.createDebt(conn, gid, debtMain);
@@ -51,29 +52,21 @@ const postDebt = async (req, res) => {
             throw new Error('Internal Server Error');
         }
         console.debug('controoler Neo4j更新線的結果：', updateGraphEdgeesult);
-        //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        // //3)NEO4j取出所有路徑，並計算出最佳解
-        // const [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        // if (!debtsForUpdate) {
-        //     console.error(debtsForUpdate);
-        //     throw new Error('Internal Server Error');
-        // }
-        // //4)NEO4j更新best path graph
-        // console.debug('debtsForUpdate:  ', debtsForUpdate);
-        // const updateGraph = await Graph.updateBestPath(txc, gid, debtsForUpdate);
-        // if (!updateGraph) {
-        //     console.error(updateGraph);
-        //     throw new Error('Internal Server Error');
-        // }
+        //2-3) 增加hasNewData
+        await Admin.addNewDataAmount(conn, gid);
 
-        // // 5)search update result from dbs just for refernce
-        // const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
+        //2-4) SQS建立Job
+        const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+        console.log('currNewDataAmount: ', currNewDataAmount);
+        if (currNewDataAmount[0].hasNewData > 5) {
+            const messageId = await produceSqsJob(gid);
+            console.log('sqs msg created: ', messageId);
+        }
 
         await conn.commit();
         await txc.commit();
 
-        // return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
         return res.status(200).json({ data: { debtId: debtMainId, detailIds } });
     } catch (err) {
         console.error('ERROR: ', err);
@@ -84,7 +77,6 @@ const postDebt = async (req, res) => {
         conn.release();
         session.close();
     }
-    // });
 };
 const updateDebt = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
@@ -102,7 +94,7 @@ const updateDebt = async (req, res) => {
     await conn.beginTransaction();
     const session = driver.session();
     const txc = session.beginTransaction();
-    // await session.writeTransaction(async (txc) => {
+
     try {
         //0-1) search if debt exist and get previous debt data for balance and best path usage
         const debtMainOld = await Debt.getDebt(conn, debtId);
@@ -165,25 +157,20 @@ const updateDebt = async (req, res) => {
         console.debug('Neo4j更新線的結果：', oldEdgeesult);
         console.debug('Neo4j更新線的結果：', newEdgeesult);
 
-        // //3)NEO4j取出所有路徑，並計算出最佳解
-        // let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        // if (!debtsForUpdate) {
-        //     throw new Error('Internal Server Error');
-        // }
-        // //4)NEO4j更新best path graph
-        // console.debug('debtsForUpdate:  ', debtsForUpdate);
-        // const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
-        // if (!updateGraph) {
-        //     throw new Error('Internal Server Error');
-        // }
+        //2-3) 增加hasNewData
+        await Admin.addNewDataAmount(conn, gid);
 
-        // // search update result from dbs just for refernce
-        // const updateResult = updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
+        //2-4) SQS建立Job
+        const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+        console.log('currNewDataAmount: ', currNewDataAmount);
+        if (currNewDataAmount[0].hasNewData > 5) {
+            const messageId = await produceSqsJob(gid);
+            console.log('sqs msg created: ', messageId);
+        }
 
         await conn.commit();
         await txc.commit();
 
-        // return res.status(200).json({ data: { debtId: debtMainId, detailIds, updateResult } });
         return res.status(200).json({ data: { debtId: debtMainId, detailIds } });
     } catch (err) {
         console.error('ERROR: ', err);
@@ -195,7 +182,6 @@ const updateDebt = async (req, res) => {
         conn.release();
         session.close();
     }
-    // });
 };
 
 const deleteDebt = async (req, res) => {
@@ -253,27 +239,21 @@ const deleteDebt = async (req, res) => {
             throw new Error('Internal Server Error');
         }
         console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
-        //TODO:處理沒有MATCH的狀況（不會跳error）
 
-        // // 3) Neo4j get all path and calculate best path
-        // let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
-        // if (!debtsForUpdate) {
-        //     throw new Error('Internal Server Error');
-        // }
-        // // 4) Neo4j update best path graph
-        // console.log('debtsForUpdate:  ', debtsForUpdate);
-        // const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
-        // if (!updateGraph) {
-        //     throw new Error('Internal Server Error');
-        // }
+        //2-3) 增加hasNewData
+        await Admin.addNewDataAmount(conn, gid);
 
-        // // search update result from dbs just for refernce
-        // const updateResult = await updatedBalanceGraph(conn, txc, gid);
+        //2-4) SQS建立Job
+        const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+        console.log('currNewDataAmount: ', currNewDataAmount);
+        if (currNewDataAmount[0].hasNewData > 5) {
+            const messageId = await produceSqsJob(gid);
+            console.log('sqs msg created: ', messageId);
+        }
 
         await conn.commit();
         await txc.commit();
 
-        // return res.status(200).json({ data: { debtId, updateResult } });
         return res.status(200).json({ data: { debtId } });
     } catch (err) {
         console.error('ERROR: ', err);
@@ -550,8 +530,6 @@ const postSettlePair = async (req, res) => {
         await conn.commit();
         await txc.commit();
 
-        //完後後才能close，不然會噴錯
-        conn.release();
         return res.status(200).json({ data: { updateResult } });
     } catch (err) {
         console.error(err);
@@ -561,6 +539,7 @@ const postSettlePair = async (req, res) => {
 
         return res.status(500).json({ err });
     } finally {
+        conn.release();
         session.close();
     }
     // });

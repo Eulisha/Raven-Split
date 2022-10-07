@@ -122,4 +122,73 @@ const checkGroupStatus = (gid) => {
         return null;
     }
 };
-module.exports = { createGroup, createMember, getGroupUsers, getGroupUserIds, updateGroup, setSettling, setSettleDone, deleteMember, checkGroupStatus };
+
+const getNewDataAmount = async (conn, gid) => {
+    try {
+        const sql = 'SELECT hasNewData FROM `groups` WHERE id = ?';
+        const data = [gid];
+        const [result] = await conn.execute(sql, data);
+        return result;
+    } catch (err) {
+        console.error('getNewDataAmount err: ', err);
+        throw new Error({
+            source: 'mysql',
+            table: 'groups',
+            querytype: 'SEARCH',
+            callfunction: 'getNewDataAmount',
+            msg: err,
+        });
+    }
+};
+const addNewDataAmount = async (conn, gid) => {
+    try {
+        const sql = 'UPDATE `groups` SET hasNewData = hasNewData + 1 WHERE id = ?';
+        const data = [gid];
+        const result = await conn.execute(sql, data);
+        console.log('ifBestGraphOnSetting result', result);
+        return result;
+    } catch (err) {
+        console.error('ifBestGraphOnSetting err: ', err);
+        throw new Error({
+            source: 'mysql',
+            table: 'groups',
+            querytype: 'UPDATE',
+            callfunction: 'addHasNewData',
+            msg: err,
+        });
+    }
+};
+
+const ifBestGraphOnSetting = async (gid) => {
+    try {
+        const sql = 'SELECT hasNewData FROM `groups` WHERE id = ?';
+        const data = [gid];
+        const [result] = await pool.execute(sql, data);
+        console.log('ifBestGraphOnSetting result', result);
+        return result;
+    } catch (err) {
+        console.error('ifBestGraphOnSetting err: ', err);
+
+        throw new Error({
+            source: 'mysql',
+            table: 'groups',
+            querytype: 'SEARCH',
+            callfunction: 'ifBestGraphOnSetting',
+            msg: err,
+        });
+    }
+};
+
+module.exports = {
+    createGroup,
+    createMember,
+    getGroupUsers,
+    getGroupUserIds,
+    updateGroup,
+    setSettling,
+    setSettleDone,
+    deleteMember,
+    checkGroupStatus,
+    addNewDataAmount,
+    getNewDataAmount,
+};
