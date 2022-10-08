@@ -1,3 +1,4 @@
+require('dotenv').config();
 const pool = require('../config/mysql');
 const { neo4j, driver } = require('../config/neo4j');
 const Debt = require('../models/debt_model');
@@ -60,8 +61,8 @@ const postDebt = async (req, res) => {
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
         console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
-            const messageId = await produceSqsJob(gid);
-            console.log('sqs msg created: ', messageId);
+            await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
+            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -164,8 +165,8 @@ const updateDebt = async (req, res) => {
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
         console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
-            const messageId = await produceSqsJob(gid);
-            console.log('sqs msg created: ', messageId);
+            await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
+            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -247,8 +248,8 @@ const deleteDebt = async (req, res) => {
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
         console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
-            const messageId = await produceSqsJob(gid);
-            console.log('sqs msg created: ', messageId);
+            await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
+            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -456,6 +457,7 @@ const postSettlePair = async (req, res) => {
         }
 
         // 4) Neo4j recreate
+
         // 4-1) Neo4j delete old edges(debt), nodes remained
         const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
         if (!deleteBestPathResult) {
@@ -500,6 +502,8 @@ const postSettlePair = async (req, res) => {
         }
         console.debug('controller Neo4j更新線的結果： ', updateGraphEdgeesult);
 
+        //準備開始更新, 更新DB狀態
+        await Admin.setProcessingBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.processing);
         // 5) Neo4j get all path and calculate
         let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
         if (!debtsForUpdate) {
@@ -520,11 +524,9 @@ const postSettlePair = async (req, res) => {
             console.error('settle done result: ', resultSetSetting);
             throw new Error('Internal Server Error');
         }
-        console.log('settle done result: ', resultSetSetting);
+        await Admin.setFinishedBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.finishedProcessing);
 
-        // 7) search update result from dbs just for refernce
-        const updateResult = await updatedBalanceGraph(conn, txc, gid); //TODO: 如果前端不需要可拿掉;
-        console.log('graph update result: ', updateResult);
+        console.log('settle done result: ');
 
         //全部成功，先commit下面才查得到
         await conn.commit();
@@ -535,8 +537,6 @@ const postSettlePair = async (req, res) => {
         console.error(err);
         await conn.rollback();
         await txc.rollback();
-        conn.release();
-
         return res.status(500).json({ err });
     } finally {
         conn.release();

@@ -120,6 +120,7 @@ const getMeberBalances = async (req, res) => {
     const gid = Number(req.params.id);
     console.info('controller: gid: ', gid, req.id);
     const conn = await pool.getConnection(); //配合其他route要使用get connection
+
     try {
         const groupUserIds = await Admin.getGroupUserIds(gid);
         if (!groupUserIds) {
@@ -166,6 +167,40 @@ const getSettle = async (req, res) => {
     const gid = Number(req.params.id);
     const uid = req.user.id;
     console.info('controller: gid, uid:', gid, uid, req.id);
+
+    const conn = await pool.getConnection(); //配合其他route要使用get connection
+
+    //check if graph is newest
+    const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+    console.log('currNewDataAmount: ', currNewDataAmount);
+
+    let processStatus = currNewDataAmount[0].hasNewData;
+
+    //not updated yet
+    if (processStatus !== 0) {
+        await produceSqsJob(gid, process.env.PRIORITY_SQS_URL);
+        console.log('sqs msg created');
+    }
+
+    //wait for calculate finished
+    if (processStatus === -1 || processStatus !== 0) {
+        for (let count = 0; count < 10; count++) {
+            setTimeout(async (gid) => {
+                currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+                console.log('currNewDataAmount: ', currNewDataAmount);
+                processStatus = currNewDataAmount[0].hasNewData;
+            }, 500);
+            if (processStatus === 0) break;
+        }
+    }
+    conn.release();
+
+    //still not finished after 5s, ask user come back later
+    if (processStatus !== 0) {
+        console.error('waiting for sqs resource', processStatus);
+        return res.status(503).json({ err: 'waiting for sqs resource' });
+    }
+
     const session = driver.session();
     await session.readTransaction(async (txc) => {
         try {

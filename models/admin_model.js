@@ -159,21 +159,38 @@ const addNewDataAmount = async (conn, gid) => {
     }
 };
 
-const ifBestGraphOnSetting = async (gid) => {
+const setProcessingBestGraph = async (conn, gid, bestGraphStatus) => {
     try {
-        const sql = 'SELECT hasNewData FROM `groups` WHERE id = ?';
-        const data = [gid];
-        const [result] = await pool.execute(sql, data);
-        console.log('ifBestGraphOnSetting result', result);
-        return result;
+        const sql = 'UPDATE `groups` SET hasNewData = ? WHERE id = ?';
+        const data = [bestGraphStatus, gid];
+        await conn.execute(sql, data);
+        return;
     } catch (err) {
-        console.error('ifBestGraphOnSetting err: ', err);
+        console.error('setProcessingBestGraph err: ', err);
 
         throw new Error({
             source: 'mysql',
             table: 'groups',
-            querytype: 'SEARCH',
-            callfunction: 'ifBestGraphOnSetting',
+            querytype: 'UPDATE',
+            callfunction: 'setProcessingBestGraph',
+            msg: err,
+        });
+    }
+};
+
+const setFinishedBestGraph = async (conn, gid, bestGraphStatus) => {
+    try {
+        const sql = 'UPDATE `groups` SET hasNewData = ? WHERE id = ?';
+        const data = [bestGraphStatus, gid];
+        await conn.execute(sql, data);
+        return;
+    } catch (err) {
+        console.error('setFinishedBestGraph err: ', err);
+        throw new Error({
+            source: 'mysql',
+            table: 'groups',
+            querytype: 'UPDATE',
+            callfunction: 'setFinishedBestGraph',
             msg: err,
         });
     }
@@ -191,4 +208,6 @@ module.exports = {
     checkGroupStatus,
     addNewDataAmount,
     getNewDataAmount,
+    setProcessingBestGraph,
+    setFinishedBestGraph,
 };
