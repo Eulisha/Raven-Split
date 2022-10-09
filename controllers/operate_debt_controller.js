@@ -73,7 +73,7 @@ const postDebt = async (req, res) => {
         console.error('ERROR: ', err);
         await conn.rollback();
         await txc.rollback();
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
         session.close();
@@ -177,8 +177,7 @@ const updateDebt = async (req, res) => {
         console.error('ERROR: ', err);
         await conn.rollback();
         await txc.rollback();
-
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
         session.close();
@@ -260,7 +259,7 @@ const deleteDebt = async (req, res) => {
         console.error('ERROR: ', err);
         await conn.rollback();
         await txc.rollback();
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
         session.close();
@@ -357,7 +356,7 @@ const postSettle = async (req, res) => {
         console.log('ERROR: ', err);
         await conn.rollback();
         await txc.rollback();
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
         session.close();
@@ -537,7 +536,7 @@ const postSettlePair = async (req, res) => {
         console.error(err);
         await conn.rollback();
         await txc.rollback();
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
         session.close();
@@ -566,7 +565,7 @@ const postSettleDone = async (req, res) => {
         return res.status(200).json({ data: null });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
     }

@@ -55,7 +55,7 @@ const createGroup = async (req, res) => {
             await txc.rollback();
             conn.release();
             session.close();
-            return res.status(500).json({ err });
+            return res.status(500).json({ err: 'Internal Server Error' });
         }
     });
 };

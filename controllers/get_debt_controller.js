@@ -66,7 +66,7 @@ const getDebts = async (req, res) => {
         return res.status(200).json({ data: debtMainRecords });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
 const getDebtDetail = async (req, res) => {
@@ -85,7 +85,7 @@ const getDebtDetail = async (req, res) => {
         return res.status(200).json({ data: result });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
 const getDebtPages = async (req, res) => {
@@ -108,7 +108,7 @@ const getDebtPages = async (req, res) => {
         return res.status(200).json({ data: { pageCount } });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
 };
 
@@ -154,7 +154,7 @@ const getMeberBalances = async (req, res) => {
         return res.status(200).json({ data: balancesGroupByUser });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ err });
+        return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
     }
@@ -212,7 +212,7 @@ const getSettle = async (req, res) => {
             if (!resultGetGraph.length == 0) {
                 console.error('getGraph fail get no match:', resultGetGraph);
                 // session.close();
-                return res.status(404).json({ err: 'no matched result' }); //FIXME:status code & err msg fine-tune
+                return res.status(404).json({ err: 'No matched result' });
             }
             const graph = resultGetGraph.records.map((record) => {
                 let amount = record.get('amount').toNumber();
@@ -232,7 +232,7 @@ const getSettle = async (req, res) => {
         } catch (err) {
             console.error(err);
             // session.close();
-            return res.status(500).json({ err });
+            return res.status(500).json({ err: 'Internal Server Error' });
         }
     });
 };
