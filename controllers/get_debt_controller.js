@@ -184,7 +184,7 @@ const getSettle = async (req, res) => {
 
     //wait for calculate finished
     if (processStatus === -1 || processStatus !== 0) {
-        for (let count = 0; count < 10; count++) {
+        for (let count = 0; count < 8; count++) {
             setTimeout(async (gid) => {
                 currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
                 console.log('currNewDataAmount: ', currNewDataAmount);
