@@ -43,6 +43,7 @@ app.use(function (err, req, res, next) {
     return res.status(500).json({ err: 'Internal Server Error' });
 });
 
+port = process.env.PORT;
 app.listen(port, async () => {
-    console.log(`Listening on port: ${process.env.PORT}`);
+    console.log(`Listening on port: ${port}`);
 });
