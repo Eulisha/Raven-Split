@@ -1,20 +1,11 @@
 require('dotenv').config();
 
-const { PORT } = process.env;
-const port = PORT;
-
-const BG_COLOR = {
-    RED: '41',
-    GREEN: '42',
-    YELLOW: '43',
-    CYAN: '46',
-    WHITE: '47',
-};
-
+//logging system
+const BG_COLOR = require('./config/mapping');
 let log = console.log;
 function getMyLog(color) {
     return function () {
-        let fnName = arguments.callee.caller.name ? arguments.callee.caller.name : 'anonymous';
+        let fnName = arguments.callee.caller ? (arguments.callee.caller.name ? arguments.callee.caller.name : 'anonymous') : '';
         log(new Date().toISOString(), `\x1b[${color}m${fnName}\x1b[0m`, ...arguments);
     };
 }
@@ -30,13 +21,12 @@ const app = express();
 const userRoute = require('./routes/user_route');
 const groupRoute = require('./routes/group_route');
 const debtRoute = require('./routes/debt_route');
-// var addRequestId = require('express-request-id')();
 const cors = require('cors');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(addRequestId);
 app.use(cors());
+
 //Routes
 app.use('/', express.static('public'));
 app.use('/api/user', userRoute);
@@ -54,5 +44,5 @@ app.use(function (err, req, res, next) {
 });
 
 app.listen(port, async () => {
-    console.log(`Listening on port: ${port}`);
+    console.log(`Listening on port: ${process.env.PORT}`);
 });

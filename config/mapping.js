@@ -7,5 +7,12 @@ const BESTGRAPH_STATUS = {
     finishedProcessing: 0,
     needProcess: 5,
 };
+const BG_COLOR = {
+    RED: '41',
+    GREEN: '42',
+    YELLOW: '43',
+    CYAN: '46',
+    WHITE: '47',
+};
 
-module.exports = { DEBT_STATUS, SPLIT_METHOD, USER_ROLE, GROUP_TYPE, BESTGRAPH_STATUS };
+module.exports = { DEBT_STATUS, SPLIT_METHOD, USER_ROLE, GROUP_TYPE, BESTGRAPH_STATUS, BG_COLOR };
