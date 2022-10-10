@@ -1,20 +1,5 @@
 require('dotenv').config();
 
-//logging system
-const BG_COLOR = require('./config/mapping');
-let log = console.log;
-function getMyLog(color) {
-    return function () {
-        let fnName = arguments.callee.caller ? (arguments.callee.caller.name ? arguments.callee.caller.name : 'anonymous') : '';
-        log(new Date().toISOString(), `\x1b[${color}m${fnName}\x1b[0m`, ...arguments);
-    };
-}
-console.log = getMyLog(BG_COLOR.GREEN);
-console.info = getMyLog(BG_COLOR.WHITE); //pointer
-console.error = getMyLog(BG_COLOR.RED);
-console.warn = getMyLog(BG_COLOR.YELLOW);
-console.debug = getMyLog(BG_COLOR.CYAN); //db in-out data-result
-
 // Express Initialization
 const express = require('express');
 const app = express();
