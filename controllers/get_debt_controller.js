@@ -226,7 +226,7 @@ const getSettle = async (req, res) => {
     //still not finished after 5s, ask user come back later
     if (processStatus !== 0) {
         console.error('waiting for sqs resource', processStatus);
-        return res.status(503).json({ err: 'waiting for sqs resource' });
+        return res.status(503).json({ err: 'Might need some time calculating Best Solution. Please check later.' });
     }
 
     const session = driver.session();
