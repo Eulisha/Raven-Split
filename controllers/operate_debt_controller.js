@@ -336,7 +336,12 @@ const postSettle = async (req, res) => {
             console.error(deleteDebtBalancesResult);
             throw new Error('Internal Server Error');
         }
+
         // 4) Neo4j delete old edges(debt), nodes remained
+
+        //準備開始更新, 更新DB狀態
+        await Admin.setProcessingBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.processing);
+
         const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
         if (!deleteBestPathResult) {
             console.error(deleteBestPathResult);
@@ -348,6 +353,7 @@ const postSettle = async (req, res) => {
         if (!resultSetSetting) {
             throw new Error('Internal Server Error');
         }
+        await Admin.setFinishedBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.finishedProcessing);
 
         await conn.commit();
         await txc.commit();
