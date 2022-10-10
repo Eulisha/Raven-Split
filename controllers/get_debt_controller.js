@@ -237,10 +237,10 @@ const getSettle = async (req, res) => {
                 console.error('getGraph fail get false:', resultGetGraph);
                 throw new Error('Internal Server Error');
             }
-            if (!resultGetGraph.length == 0) {
-                console.error('getGraph fail get no match:', resultGetGraph);
-                return res.status(404).json({ err: 'No matched result' });
-            }
+            // if (!resultGetGraph.length == 0) {
+            //     console.error('getGraph fail get no match:', resultGetGraph);
+            //     return res.status(404).json({ err: 'No matched result' });
+            // }
             const graph = resultGetGraph.records.map((record) => {
                 let amount = record.get('amount').toNumber();
                 let borrower = record.get('borrower').toNumber();
