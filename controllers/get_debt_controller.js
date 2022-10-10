@@ -185,13 +185,33 @@ const getSettle = async (req, res) => {
 
     //wait for calculate finished
     if (processStatus === -1 || processStatus !== 0) {
-        for (let count = 0; count < 8; count++) {
-            setTimeout(async (gid) => {
-                currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-                console.log('currNewDataAmount: ', currNewDataAmount);
-                processStatus = currNewDataAmount[0].hasNewData;
-            }, 500);
-            if (processStatus === 0) break;
+        async function waitForFinished(conn, gid) {
+            for (let count = 0; count < 10; count++) {
+                console.log('before', count);
+                async function getCurrStatus(conn, gid) {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(
+                            async () => {
+                                try {
+                                    console.log('$$', gid);
+                                    currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+                                    console.log('currNewDataAmount: ', currNewDataAmount);
+                                    processStatus = currNewDataAmount[0].hasNewData;
+                                    resolve(processStatus);
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            },
+                            500,
+                            conn,
+                            gid
+                        );
+                    });
+                }
+                await getCurrStatus(conn, gid);
+                console.log('after', count);
+                if (processStatus === 0) break;
+            }
         }
         await waitForFinished(conn, gid);
     }
