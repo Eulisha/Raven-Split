@@ -166,7 +166,7 @@ const checkUserExist = async (req, res) => {
     const checkExistResult = await User.checkExist(email);
     if (!checkExistResult) {
         console.log('checkExist result:', checkExistResult);
-        return res.status(500).json({ err: checkExistResult });
+        return res.status(500).json({ err: 'Internal Server Error' });
     }
     if (checkExistResult.length == 0) {
         console.log('checkExist result:', checkExistResult, '=> User not exist.');

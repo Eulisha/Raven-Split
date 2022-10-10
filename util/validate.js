@@ -45,7 +45,7 @@ const validate = (req, res, next) => {
     console.log('validateRule: errors', errors);
     if (!errors.isEmpty()) {
         console.error('vaildate fail: ', errors.array());
-        return res.status(400).json({ err: errors.array(), provider: 'validator' }); // 增加給前端做判斷的key
+        return res.status(400).json({ err: errors.array(), provider: 'validator' }); // provider是用來給前端做判斷的key
     }
     next();
 };
