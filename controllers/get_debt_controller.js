@@ -202,8 +202,10 @@ const getSettle = async (req, res) => {
                                 currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
                                 console.log('currNewDataAmount: ', currNewDataAmount);
                                 processStatus = currNewDataAmount[0].hasNewData;
-                                if (processStatus === 0) clearInterval(intervalObj);
-                                resolve(processStatus);
+                                if (processStatus === 0) {
+                                    clearInterval(intervalObj);
+                                    resolve(processStatus);
+                                }
                             } catch (err) {
                                 reject(err);
                             }
