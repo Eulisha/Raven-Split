@@ -185,36 +185,40 @@ const getSettle = async (req, res) => {
 
     //wait for calculate finished
     if (processStatus === -1 || processStatus !== 0) {
+        let count = 0;
         async function waitForFinished(conn, gid) {
-            for (let count = 0; count < 10; count++) {
-                console.log('before', count);
-                async function getCurrStatus(conn, gid) {
-                    return new Promise((resolve, reject) => {
-                        setTimeout(
-                            async () => {
-                                try {
-                                    console.log('$$', gid);
-                                    currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-                                    console.log('currNewDataAmount: ', currNewDataAmount);
-                                    processStatus = currNewDataAmount[0].hasNewData;
-                                    resolve(processStatus);
-                                } catch (err) {
-                                    reject(err);
-                                }
-                            },
-                            500,
-                            conn,
-                            gid
-                        );
-                    });
-                }
-                await getCurrStatus(conn, gid);
-                console.log('after', count);
-                if (processStatus === 0) break;
-            }
+            console.log('getcurrstatus');
+            return new Promise((resolve, reject) => {
+                const intervalObj = setInterval(
+                    async () => {
+                        count++;
+                        console.log(count);
+                        if (count > 10) {
+                            clearInterval(intervalObj);
+                        }
+                        async function getCurrStatus(conn, gid) {
+                            try {
+                                console.log('$$', gid);
+                                currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+                                console.log('currNewDataAmount: ', currNewDataAmount);
+                                processStatus = currNewDataAmount[0].hasNewData;
+                                if (processStatus === 0) clearInterval(intervalObj);
+                                resolve(processStatus);
+                            } catch (err) {
+                                reject(err);
+                            }
+                        }
+                        await getCurrStatus(conn, gid);
+                    },
+                    500,
+                    conn,
+                    gid
+                );
+            });
         }
         await waitForFinished(conn, gid);
     }
+
     conn.release();
 
     //still not finished after 5s, ask user come back later
@@ -233,7 +237,6 @@ const getSettle = async (req, res) => {
             }
             if (!resultGetGraph.length == 0) {
                 console.error('getGraph fail get no match:', resultGetGraph);
-                // session.close();
                 return res.status(404).json({ err: 'No matched result' });
             }
             const graph = resultGetGraph.records.map((record) => {
@@ -249,11 +252,9 @@ const getSettle = async (req, res) => {
             }
             console.debug('controller getSettle graph: ', graph);
 
-            // session.close();
             return res.status(200).json({ data: graph });
         } catch (err) {
             console.error(err);
-            // session.close();
             return res.status(500).json({ err: 'Internal Server Error' });
         }
     });
