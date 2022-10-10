@@ -16,14 +16,16 @@ const produceSqsJob = async (gid, url) => {
             QueueUrl: url,
         };
 
-        const messageId = await sqs.sendMessage(params, function (err, data) {
-            if (err) {
-                console.error('SQS ERROR: ', err);
-                throw new Error(err);
-            } else {
-                console.log('Success', data.MessageId);
-                return data.MessageId;
-            }
+        const messageId = await new Promise((resolve, reject) => {
+            sqs.sendMessage(params, function (err, data) {
+                if (err) {
+                    console.error('SQS ERROR: ', err);
+                    reject(err);
+                } else {
+                    console.log('Success', data.MessageId);
+                    resolve(data.MessageId);
+                }
+            });
         });
         return messageId;
     } catch (err) {

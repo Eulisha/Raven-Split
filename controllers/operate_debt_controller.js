@@ -525,13 +525,9 @@ const postSettlePair = async (req, res) => {
         }
         await Admin.setFinishedBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.finishedProcessing);
 
-        console.log('settle done result: ');
-
-        //全部成功，先commit下面才查得到
         await conn.commit();
         await txc.commit();
-
-        return res.status(200).json({ data: { updateResult } });
+        return res.status(200).json({ data: updateGraph });
     } catch (err) {
         console.error(err);
         await conn.rollback();

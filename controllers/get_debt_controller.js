@@ -6,6 +6,7 @@ const { neo4j, driver } = require('../config/neo4j');
 const Admin = require('../models/admin_model');
 const pageSize = process.env.PAGE_SIZE;
 const Mapping = require('../config/mapping');
+const { produceSqsJob } = require('../util/sqs_producer');
 
 const getDebts = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
@@ -171,27 +172,48 @@ const getSettle = async (req, res) => {
     const conn = await pool.getConnection(); //配合其他route要使用get connection
 
     //check if graph is newest
-    const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+    let currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
     console.log('currNewDataAmount: ', currNewDataAmount);
 
     let processStatus = currNewDataAmount[0].hasNewData;
 
     //not updated yet
     if (processStatus !== 0) {
-        await produceSqsJob(gid, process.env.PRIORITY_SQS_URL);
-        console.log('sqs msg created');
+        const messgeId = await produceSqsJob(gid, process.env.PRIORITY_SQS_URL);
+        console.log('sqs msg created', messgeId);
     }
 
     //wait for calculate finished
     if (processStatus === -1 || processStatus !== 0) {
-        for (let count = 0; count < 10; count++) {
-            setTimeout(async (gid) => {
-                currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-                console.log('currNewDataAmount: ', currNewDataAmount);
-                processStatus = currNewDataAmount[0].hasNewData;
-            }, 500);
-            if (processStatus === 0) break;
+        async function waitForFinished(conn, gid) {
+            for (let count = 0; count < 10; count++) {
+                console.log('before', count);
+                async function getCurrStatus(conn, gid) {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(
+                            async () => {
+                                try {
+                                    console.log('$$', gid);
+                                    currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+                                    console.log('currNewDataAmount: ', currNewDataAmount);
+                                    processStatus = currNewDataAmount[0].hasNewData;
+                                    resolve(processStatus);
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            },
+                            500,
+                            conn,
+                            gid
+                        );
+                    });
+                }
+                await getCurrStatus(conn, gid);
+                console.log('after', count);
+                if (processStatus === 0) break;
+            }
         }
+        await waitForFinished(conn, gid);
     }
     conn.release();
 
