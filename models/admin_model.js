@@ -2,6 +2,7 @@ const pool = require('../config/mysql');
 
 const createGroup = async (conn, group_name, group_type, members) => {
     console.log('@createGroup: group_name, members: ', group_name, group_type, members);
+
     try {
         //新增group
         const groupSql = 'INSERT INTO `groups` SET name = ?, type = ?, status = ?';

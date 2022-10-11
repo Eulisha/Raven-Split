@@ -8,6 +8,7 @@ const createGroup = async (req, res) => {
     const group_name = req.body.group_name;
     const group_type = req.body.group_type;
     const groupUsers = req.body.groupUsers;
+    const uid = req.user.id;
     console.info('controller: group_name, group_type, groupUsers: ', group_name, group_type, groupUsers);
 
     if (groupUsers.length < 2) {
@@ -21,6 +22,9 @@ const createGroup = async (req, res) => {
     await session.writeTransaction(async (txc) => {
         //MySql建立group
         try {
+            groupUsers.map((user) => {
+                return user.uid === uid ? { uid: user.uid, role: Mapping.USER_ROLE.owner } : { uid: user.uid, role: Mapping.USER_ROLE.administer };
+            });
             const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
             if (!groupResult) {
                 console.error(groupResult);
@@ -98,7 +102,7 @@ const updateGroup = async (req, res) => {
             let map = [];
             for (let i = 0; i < req.body.groupUsers.length; i++) {
                 const uid = groupUsers[i].uid;
-                const role = groupUsers[i].role;
+                const role = Mapping.USER_ROLE.administer;
                 console.log(uid, role);
                 const insertId = await Admin.createMember(conn, gid, uid, role);
                 if (!insertId) {
