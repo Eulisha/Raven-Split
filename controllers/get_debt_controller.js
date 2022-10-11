@@ -275,6 +275,7 @@ const getSettlePair = async (req, res) => {
         if (!resultSetSetting) {
             throw new Error('Internal Server Error');
         }
+        return res.status(200).json({ data: null });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ err: 'Internal Server Error' });
