@@ -22,10 +22,10 @@ const createGroup = async (req, res) => {
     await session.writeTransaction(async (txc) => {
         //MySql建立group
         try {
-            groupUsers.map((user) => {
+            const members = groupUsers.map((user) => {
                 return user.uid === uid ? { uid: user.uid, role: Mapping.USER_ROLE.owner } : { uid: user.uid, role: Mapping.USER_ROLE.administer };
             });
-            const groupResult = await Admin.createGroup(conn, group_name, group_type, groupUsers);
+            const groupResult = await Admin.createGroup(conn, group_name, group_type, members);
             if (!groupResult) {
                 console.error(groupResult);
                 throw new Error('Internal Server Error');
