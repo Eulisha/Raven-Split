@@ -171,74 +171,76 @@ const getSettle = async (req, res) => {
 
     const conn = await pool.getConnection(); //配合其他route要使用get connection
 
-    //check if graph is newest
-    let currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-    console.log('currNewDataAmount: ', currNewDataAmount);
+    try {
+        //check if graph is newest
+        let currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+        console.log('currNewDataAmount: ', currNewDataAmount);
 
-    let processStatus = currNewDataAmount[0].hasNewData;
+        let processStatus = currNewDataAmount[0].hasNewData;
 
-    //not updated yet
-    if (processStatus !== 0) {
-        const messgeId = await produceSqsJob(gid, process.env.PRIORITY_SQS_URL);
-        console.log('sqs msg created', messgeId);
-    }
-
-    //wait for calculate finished
-    if (processStatus === -1 || processStatus !== 0) {
-        let count = 0;
-        async function waitForFinished(conn, gid) {
-            console.log('getcurrstatus');
-            return new Promise((resolve, reject) => {
-                const intervalObj = setInterval(
-                    async () => {
-                        count++;
-                        console.log(count);
-                        if (count > 10) {
-                            clearInterval(intervalObj);
-                        }
-                        async function getCurrStatus(conn, gid) {
-                            try {
-                                console.log('$$', gid);
-                                currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-                                console.log('currNewDataAmount: ', currNewDataAmount);
-                                processStatus = currNewDataAmount[0].hasNewData;
-                                if (processStatus === 0) clearInterval(intervalObj);
-                                resolve(processStatus);
-                            } catch (err) {
-                                reject(err);
-                            }
-                        }
-                        await getCurrStatus(conn, gid);
-                    },
-                    500,
-                    conn,
-                    gid
-                );
-            });
+        //not updated yet
+        if (processStatus !== 0) {
+            const messgeId = await produceSqsJob(gid, process.env.PRIORITY_SQS_URL);
+            console.log('sqs msg created', messgeId);
         }
-        await waitForFinished(conn, gid);
-    }
 
-    conn.release();
+        //wait for calculate finished
+        if (processStatus === -1 || processStatus !== 0) {
+            let count = 0;
+            async function waitForFinished(conn, gid) {
+                console.log('getcurrstatus');
+                return new Promise((resolve, reject) => {
+                    const intervalObj = setInterval(
+                        async () => {
+                            count++;
+                            console.log(count);
+                            if (count > 10) {
+                                clearInterval(intervalObj);
+                            }
+                            async function getCurrStatus(conn, gid) {
+                                try {
+                                    console.log('$$', gid);
+                                    currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
+                                    console.log('currNewDataAmount: ', currNewDataAmount);
+                                    processStatus = currNewDataAmount[0].hasNewData;
+                                    if (processStatus === 0) {
+                                        clearInterval(intervalObj);
+                                        resolve(processStatus);
+                                    }
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            }
+                            await getCurrStatus(conn, gid);
+                        },
+                        500,
+                        conn,
+                        gid
+                    );
+                });
+            }
+            await waitForFinished(conn, gid);
+        }
 
-    //still not finished after 5s, ask user come back later
-    if (processStatus !== 0) {
-        console.error('waiting for sqs resource', processStatus);
-        return res.status(503).json({ err: 'waiting for sqs resource' });
-    }
+        conn.release();
 
-    const session = driver.session();
-    await session.readTransaction(async (txc) => {
-        try {
+        //still not finished after 5s, ask user come back later
+        if (processStatus !== 0) {
+            console.error('waiting for sqs resource', processStatus);
+            return res.status(503).json({ err: 'Might need some time calculating Best Solution. Please check later.' });
+        }
+
+        const session = driver.session();
+        await session.readTransaction(async (txc) => {
             const resultGetGraph = await Graph.getGraph(txc, neo4j.int(gid));
             if (!resultGetGraph) {
                 console.error('getGraph fail get false:', resultGetGraph);
                 throw new Error('Internal Server Error');
             }
-            if (!resultGetGraph.length == 0) {
-                console.error('getGraph fail get no match:', resultGetGraph);
-                return res.status(404).json({ err: 'No matched result' });
-            }
+            // if (!resultGetGraph.length == 0) {
+            //     console.error('getGraph fail get no match:', resultGetGraph);
+            //     return res.status(404).json({ err: 'No matched result' });
+            // }
             const graph = resultGetGraph.records.map((record) => {
                 let amount = record.get('amount').toNumber();
                 let borrower = record.get('borrower').toNumber();
@@ -253,11 +255,31 @@ const getSettle = async (req, res) => {
             console.debug('controller getSettle graph: ', graph);
 
             return res.status(200).json({ data: graph });
-        } catch (err) {
-            console.error(err);
-            return res.status(500).json({ err: 'Internal Server Error' });
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
+};
+const getSettlePair = async (req, res) => {
+    if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['viewer']) {
+        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        return res.status(403).json({ err: 'No authorization.' });
+    }
+    const gid = Number(req.params.id);
+    const uid = req.user.id;
+    console.info('controller: gid, uid:', gid, uid, req.id);
+
+    try {
+        const resultSetSetting = await Admin.setSettling(gid, uid);
+        if (!resultSetSetting) {
+            throw new Error('Internal Server Error');
         }
-    });
+        return res.status(200).json({ data: null });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ err: 'Internal Server Error' });
+    }
 };
 const getUserBalances = async (req, res) => {
     const uid = req.user.id;
@@ -344,4 +366,4 @@ const getUserBalances = async (req, res) => {
     }
 };
 
-module.exports = { getDebts, getDebtDetail, getDebtDetail, getDebtPages, getMeberBalances, getSettle, getUserBalances };
+module.exports = { getDebts, getDebtDetail, getDebtDetail, getDebtPages, getMeberBalances, getSettle, getSettlePair, getUserBalances };
