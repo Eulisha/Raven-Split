@@ -195,7 +195,7 @@ const getSettle = async (req, res) => {
                             count++;
                             console.log(count);
                             if (count > 10) {
-                                clearInterval(intervalObj);
+                                resolve(clearInterval(intervalObj));
                             }
                             async function getCurrStatus(conn, gid) {
                                 try {
@@ -203,10 +203,8 @@ const getSettle = async (req, res) => {
                                     currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
                                     console.log('currNewDataAmount: ', currNewDataAmount);
                                     processStatus = currNewDataAmount[0].hasNewData;
-                                    if (processStatus === 0) {
-                                        clearInterval(intervalObj);
-                                        resolve(processStatus);
-                                    }
+                                    if (processStatus === 0) clearInterval(intervalObj);
+                                    resolve(processStatus);
                                 } catch (err) {
                                     reject(err);
                                 }
