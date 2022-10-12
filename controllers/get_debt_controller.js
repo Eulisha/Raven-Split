@@ -194,7 +194,7 @@ const getSettle = async (req, res) => {
                         count++;
                         console.log(count);
                         if (count > 10) {
-                            clearInterval(intervalObj);
+                            resolve(clearInterval(intervalObj));
                         }
                         async function getCurrStatus(conn, gid) {
                             try {
