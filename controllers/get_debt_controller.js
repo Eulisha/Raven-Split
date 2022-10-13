@@ -180,7 +180,7 @@ const getSettle = async (req, res) => {
                     const intervalObj = setInterval(
                         async () => {
                             count++;
-                            if (count > 8) {
+                            if (count > 10) {
                                 resolve(clearInterval(intervalObj));
                             }
                             async function getCurrStatus(conn, gid) {
