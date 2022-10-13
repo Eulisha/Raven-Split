@@ -105,6 +105,7 @@ const checkGroupStatus = (gid) => {
 
 const getNewDataAmount = async (conn, gid) => {
     try {
+        const sql = 'SELECT hasNewData FROM `groups` WHERE id = ?';
         const data = [gid];
         const [result] = await conn.execute(sql, data);
         return result;
@@ -118,6 +119,7 @@ const getNewDataAmount = async (conn, gid) => {
         });
     }
 };
+
 const addNewDataAmount = async (conn, gid) => {
     try {
         const sql = 'UPDATE `groups` SET hasNewData = hasNewData + 1 WHERE id = ?';
