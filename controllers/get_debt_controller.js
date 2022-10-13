@@ -176,20 +176,17 @@ const getSettle = async (req, res) => {
         if (processStatus === -1 || processStatus !== 0) {
             let count = 0;
             async function waitForFinished(conn, gid) {
-                console.log('getcurrstatus');
                 return new Promise((resolve, reject) => {
                     const intervalObj = setInterval(
                         async () => {
                             count++;
                             console.log(count);
-                            if (count > 10) {
+                            if (count > 8) {
                                 resolve(clearInterval(intervalObj));
                             }
                             async function getCurrStatus(conn, gid) {
                                 try {
-                                    console.log('$$', gid);
                                     currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-                                    console.log('currNewDataAmount: ', currNewDataAmount);
                                     processStatus = currNewDataAmount[0].hasNewData;
                                     if (processStatus == 0) {
                                         console.log(processStatus);
@@ -214,7 +211,6 @@ const getSettle = async (req, res) => {
         conn.release();
 
         //still not finished after 4s, ask user come back later
-        console.log('after waiting: ', processStatus);
         if (processStatus != 0) {
             console.error('@getSettle: 503 waiting for sqs resource: ', processStatus);
             return res.status(503).json({ err: 'Might need some time calculating Best Solution. Please check later.' });
