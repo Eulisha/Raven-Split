@@ -180,7 +180,6 @@ const getSettle = async (req, res) => {
                     const intervalObj = setInterval(
                         async () => {
                             count++;
-                            console.log(count);
                             if (count > 8) {
                                 resolve(clearInterval(intervalObj));
                             }
@@ -189,7 +188,6 @@ const getSettle = async (req, res) => {
                                     currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
                                     processStatus = currNewDataAmount[0].hasNewData;
                                     if (processStatus == 0) {
-                                        console.log(processStatus);
                                         resolve(processStatus);
                                         clearInterval(intervalObj);
                                     }
