@@ -15,33 +15,30 @@ const verifyJwt = async (jwt, token, jwtSecret) => {
 };
 
 const authentication = async (req, res, next) => {
-    console.log(req.headers.authorization, req.path);
-    console.log('token: ', req.get('authorization'));
     let accessToken = req.get('authorization');
     if (!accessToken) {
-        console.error('401', accessToken);
+        console.error('@authentication: 401: ', req.path, accessToken);
         return res.status(401).json({ err: 'Unauthorized' });
     }
 
     accessToken = accessToken.replace('Bearer ', '');
     if (accessToken == 'null') {
-        console.error('401', accessToken);
+        console.error('@authentication: 401: ', req.path, accessToken);
         return res.status(401).json({ err: 'Unauthorized' });
     }
 
     // verify JWT
     try {
         const decodedUserInfo = await verifyJwt(jwt, accessToken, JWT_SECRET_KEY);
-        console.log('token decoded id: ', decodedUserInfo.id);
         if (!decodedUserInfo) {
-            console.error('verifyJWT result:', decodedUserInfo);
-            return res.status(403).json({ err: 'Forbidden' });
+            console.error('@authentication: 403: ', req.path, decodedUserInfo);
+            return res.status(403).json({ err: 'Authorization failed' });
         }
         req.user = decodedUserInfo;
         return next();
     } catch (err) {
-        console.error('verifyJWT result:', err);
-        return res.status(403).json({ err: 'Forbidden' });
+        console.error('@authentication: 403: ', req.path, err);
+        return res.status(403).json({ err: 'Authorization failed' });
     }
 };
 
@@ -49,20 +46,23 @@ const authorization = async (req, res, next) => {
     // get user-groups and roles
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.info('uid, gid: ', uid, gid, req.id);
-    const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
-    if (!userGroupRole) {
-        console.error('getUserGroupRole result:', userGroupRole);
-        return res.status(500).json({ error: 'Internal Server Error' });
+    try {
+        const [userGroupRole] = await User.getUserGroupRole(uid, gid); //{uid, name, role}
+        if (!userGroupRole) {
+            console.error('@authorization: db getUserGroupRole fail:', req.path, userGroupRole);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+        //沒查到role, 沒權限
+        if (userGroupRole.length === 0) {
+            console.error('@authorization: 403:', req.path, userGroupRole);
+            return res.status(403).json({ err: 'No authorization.' });
+        }
+        req.userGroupRole = userGroupRole[0];
+        next();
+    } catch (err) {
+        console.error('@authorization: err:', req.path, err);
+        return res.status(500).json({ err: 'Internal Server Error.' });
     }
-    //沒查到role, 沒權限, 擋回
-    if (userGroupRole.length == 0) {
-        console.error('getUserGroupRole result:', userGroupRole);
-        return res.status(403).json({ err: 'No authorization.' });
-    }
-    req.userGroupRole = userGroupRole[0];
-    console.info('getUserGroupRole result:', userGroupRole);
-    next();
 };
 
 module.exports = { authentication, authorization };

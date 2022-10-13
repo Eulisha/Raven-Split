@@ -13,14 +13,13 @@ const Mapping = require('../config/mapping');
 
 const postDebt = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@postDebt: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
 
     const gid = Number(req.params.id);
     const debtMain = req.body.debt_main; //{date, title, total, lender, split_method}
     const debtDetail = req.body.debt_detail; //{ [ { borrower, amount} ] }
-    console.info('controller: gid, debtMain, debtDetail:  ', gid, debtMain, debtDetail, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -44,7 +43,6 @@ const postDebt = async (req, res) => {
         if (!updateBalanceResult) {
             throw new Error('Internal Server Error');
         }
-        console.log('DB到這裡都完成了');
 
         //2-2) NEO4j best path graph 查出舊帳並加入新帳更新
         const updateGraphEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMain, debtDetail);
@@ -52,17 +50,14 @@ const postDebt = async (req, res) => {
             console.error(updateGraphEdgeesult);
             throw new Error('Internal Server Error');
         }
-        console.debug('controoler Neo4j更新線的結果：', updateGraphEdgeesult);
 
         //2-3) 增加hasNewData
         await Admin.addNewDataAmount(conn, gid);
 
         //2-4) SQS建立Job
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-        console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
             await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
-            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -81,14 +76,13 @@ const postDebt = async (req, res) => {
 };
 const updateDebt = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@updateDebt: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
     const debtMainNew = req.body.debt_main;
     const debtDetailNew = req.body.debt_detail;
-    console.info('controller: gid, debtId, debtMainNew, debtDetailNew', gid, debtId, debtMainNew, debtDetailNew, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -100,21 +94,20 @@ const updateDebt = async (req, res) => {
         //0-1) search if debt exist and get previous debt data for balance and best path usage
         const debtMainOld = await Debt.getDebt(conn, debtId);
         if (!debtMainOld) {
-            console.error('getDebt fail :', debtMainOld);
+            console.error('@updateDebt: db getDebt fail: ', debtMainOld);
             throw new Error('Internal Server Error');
         }
         const debtDetailOld = await Debt.getDebtDetailTrx(conn, debtId);
         if (!debtDetailOld) {
-            console.error('getDebtDetailTrx fail :', debtDetailOld);
+            console.error('@updateDebt: db getDebtDetailTrx fail: ', debtDetailOld);
             throw new Error('Internal Server Error');
         }
         //找不到或已經更新了
         if (debtMainOld.length === 0 || debtDetailOld.length === 0) {
-            console.error('mysql getDebt getDebtDetailTrx no match :', debtMainOld.length, debtDetailOld.length);
+            console.error('@updateDebt: db getDebt getDebtDetailTrx no match :', debtMainOld.length, debtDetailOld.length);
             conn.rollback();
             return res.status(404).json({ err: 'DebtId not exist' });
         }
-        console.info('debtMainOld, debtDetailOld', debtMainOld, debtDetailOld);
 
         //0-2) mysql set previous debt status to 0
         const status = Mapping.DEBT_STATUS.deprach; //custom update, create new one directly
@@ -132,9 +125,7 @@ const updateDebt = async (req, res) => {
         if (!detailIds) {
             throw new Error('Internal Server Error');
         }
-        console.debug('debtDetailOld: ', debtDetailOld);
 
-        //!!下面是要減掉這個帳，所以不應該弄成反的
         //set debt amount reversely stand for delete
         debtDetailOld.forEach((ele, ind) => {
             debtDetailOld[ind].amount = -ele.amount;
@@ -152,21 +143,16 @@ const updateDebt = async (req, res) => {
         }
 
         //2-2)Neo4j update edge
-        console.info('start neo4j');
         const oldEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainOld[0], debtDetailOld);
         const newEdgeesult = await GraphHandler.updateGraphEdge(txc, gid, debtMainNew, debtDetailNew);
-        console.debug('Neo4j更新線的結果：', oldEdgeesult);
-        console.debug('Neo4j更新線的結果：', newEdgeesult);
 
         //2-3) 增加hasNewData
         await Admin.addNewDataAmount(conn, gid);
 
         //2-4) SQS建立Job
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-        console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
             await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
-            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -174,7 +160,7 @@ const updateDebt = async (req, res) => {
 
         return res.status(200).json({ data: { debtId: debtMainId, detailIds } });
     } catch (err) {
-        console.error('ERROR: ', err);
+        console.error('@updateDebt: err: ', err);
         await conn.rollback();
         await txc.rollback();
         return res.status(500).json({ err: 'Internal Server Error' });
@@ -186,12 +172,11 @@ const updateDebt = async (req, res) => {
 
 const deleteDebt = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@deleteDebt: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const gid = Number(req.params.id);
     const debtId = Number(req.params.debtId);
-    console.info('controller: gid, debtId:', gid, debtId, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -203,19 +188,20 @@ const deleteDebt = async (req, res) => {
         //0-1) get previous debt data for balance and best path usage
         const debtMain = await Debt.getDebt(conn, debtId);
         if (!debtMain) {
+            console.error('@deleteDebt: db getDebtDet fail: ', debtMain);
             throw new Error('Internal Server Error');
         }
         const debtDetail = await Debt.getDebtDetailTrx(conn, debtId);
         if (!debtDetail) {
+            console.error('@deleteDebt: db getDebtDetailTrx fail: ', debtDetail);
             throw new Error('Internal Server Error');
         }
         //找不到或已經更新了
         if (debtMain.length === 0 || debtDetail.length === 0) {
-            console.error('mysql getDebt getDebtDetailTrx no match :', debtMain.length, debtDetail.length);
+            console.error('@deleteDebt: db  getDebt getDebtDetailTrx no match :', debtMain.length, debtDetail.length);
             conn.rollback();
             return res.status(404).json({ err: 'DebtId not exist' });
         }
-        console.log('debtMain, debtDetail: ', debtMain, debtDetail);
 
         //0-2) mysql set debt status to customer delete
         const status = Mapping.DEBT_STATUS.customer_deleted; //customer delete
@@ -238,17 +224,14 @@ const deleteDebt = async (req, res) => {
         if (!updateGraphEdgeesult) {
             throw new Error('Internal Server Error');
         }
-        console.log('Neo4j更新線的結果：', updateGraphEdgeesult);
 
         //2-3) 增加hasNewData
         await Admin.addNewDataAmount(conn, gid);
 
         //2-4) SQS建立Job
         const currNewDataAmount = await Admin.getNewDataAmount(conn, gid);
-        console.log('currNewDataAmount: ', currNewDataAmount);
         if (currNewDataAmount[0].hasNewData > 5) {
             await produceSqsJob(gid, process.env.NORMAL_SQS_URL);
-            console.log('sqs msg created');
         }
 
         await conn.commit();
@@ -256,7 +239,7 @@ const deleteDebt = async (req, res) => {
 
         return res.status(200).json({ data: { debtId } });
     } catch (err) {
-        console.error('ERROR: ', err);
+        console.error('@deleteDebt: err: ', err);
         await conn.rollback();
         await txc.rollback();
         return res.status(500).json({ err: 'Internal Server Error' });
@@ -268,14 +251,13 @@ const deleteDebt = async (req, res) => {
 
 const postSettle = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@postSettle: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
 
     const uid = req.user.id;
     const gid = Number(req.params.id);
     const { date } = req.body.settle_main;
-    console.log('controller: uid, gid, data:', uid, gid, date, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -287,16 +269,16 @@ const postSettle = async (req, res) => {
         // 1) get group balance from Neo
         const result = await Graph.getGraph(txc, neo4j.int(gid));
         if (!result) {
-            console.error('getGraph fail: ', result);
+            console.error('@postSettle: neo4j getGraph fail: ', result);
             throw new Error('Internal Server Error');
         }
 
         if (result.records.length == 0) {
-            console.error('getGraph no match: ', result.records.length);
+            console.error('@postSettle: neo4j getGraph no match: ', result.records.length);
             //res之前要先把settle鎖拿掉
             const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
             if (!resultSetSetting) {
-                console.error('setSettleDone fail: ', resultSetSetting);
+                console.error('@postSettle: db setSettleDone fail: ', resultSetSetting);
                 throw new Error('Internal Server Error');
             }
             await conn.commit();
@@ -311,7 +293,7 @@ const postSettle = async (req, res) => {
             if (amount != 0) {
                 const userNames = await User.getUserNames(conn, borrower, lender);
                 if (!userNames) {
-                    console.error('getUserNames fail: ', userNames);
+                    console.error('@postSettle: db getUserNames fail: ', userNames);
                     throw new Error('Internal Server Error');
                 }
                 //因為是還錢所以debtMain的lender值為本來的borrower
@@ -319,13 +301,13 @@ const postSettle = async (req, res) => {
                 debtMain.title = `Settle Balances Between ${userNames[0].name} ${userNames[1].name}`;
                 let debtId = await Debt.createDebt(conn, gid, debtMain);
                 if (!debtId) {
-                    console.log(debtId);
+                    console.error('@postSettle: db createDebt fail: ', debtId);
                     throw new Error('Internal Server Error');
                 }
                 let debtDetail = [{ borrower: lender, amount }];
                 const createDebtDetailResult = await Debt.createDebtDetail(conn, debtId, debtDetail);
                 if (!createDebtDetailResult) {
-                    console.log(createDebtDetailResult);
+                    console.error('@postSettle: db createDebtDetail fail: ', createDebtDetailResult);
                     throw new Error('Internal Server Error');
                 }
             }
@@ -333,7 +315,7 @@ const postSettle = async (req, res) => {
         // 3) MySql clear balance of this pair
         const deleteDebtBalancesResult = await Debt.deleteDebtBalances(conn, gid);
         if (!deleteDebtBalancesResult) {
-            console.error(deleteDebtBalancesResult);
+            console.error('@postSettle: db deleteDebtBalances fail: ', deleteDebtBalancesResult);
             throw new Error('Internal Server Error');
         }
 
@@ -344,7 +326,7 @@ const postSettle = async (req, res) => {
 
         const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
         if (!deleteBestPathResult) {
-            console.error(deleteBestPathResult);
+            console.error('@postSettle: neo4j deleteBestPath fail: ', deleteBestPathResult);
             throw new Error('Internal Server Error');
         }
 
@@ -359,7 +341,7 @@ const postSettle = async (req, res) => {
         await txc.commit();
         return res.status(200).json({ data: null });
     } catch (err) {
-        console.log('ERROR: ', err);
+        console.error('@postSettle: err: ', err);
         await conn.rollback();
         await txc.rollback();
         return res.status(500).json({ err: 'Internal Server Error' });
@@ -371,7 +353,7 @@ const postSettle = async (req, res) => {
 
 const postSettlePair = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@postSettlePair: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const { date } = req.body.settle_main;
@@ -380,7 +362,6 @@ const postSettlePair = async (req, res) => {
     const uid1 = Number(req.params.uid1);
     const uid2 = Number(req.params.uid2);
     const uid = req.user.id;
-    console.log('controller: uid, uid1, uid2, gid, data:', uid, uid1, uid2, gid, date, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -392,25 +373,11 @@ const postSettlePair = async (req, res) => {
         // 1-1) get balance of this pair from MySql
         let balances = await Debt.getAllBalances(conn, gid);
         if (!balances) {
-            console.error('getAllBalances fail: ', balances);
+            console.error('@postSettlePair: db getAllBalances fail:', balances);
             throw new Error('Internal Server Error');
         }
 
-        // //沒查到代表沒有賬務關係
-        // if (balances.length === 0) {
-        //     console.error('getAllBalances no match: ', balances.length);
-        //     //res之前要先把settle鎖拿掉
-        //     const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
-        //     if (!resultSetSetting) {
-        //         console.error('setSettleDone fail: ', resultSetSetting);
-        //         throw new Error('Internal Server Error');
-        //     }
-        //     await conn.commit();
-        //     return res.status(400).json({ err: 'No matched result' });
-        // }
-
         // 1-2) find balance of this pair
-        console.debug(balances);
         let pairBalance = {};
         for (let i = 0; i < balances.length; i++) {
             if ((balances[i].borrower == uid1 && balances[i].lender == uid2) || (balances[i].borrower == uid2 && balances[i].lender == uid1)) {
@@ -419,16 +386,15 @@ const postSettlePair = async (req, res) => {
                 break;
             }
         }
-        console.debug('pairBalance', pairBalance);
 
         if (!pairBalance.id || pairBalance.amount === 0) {
             //找不到, 代表沒有債務關係、或目前債務為0
-            console.error('pariBalance no match: ', pairBalance);
+            console.error('@postSettlePair: no debt: ', pairBalance);
 
             //res之前要先把settle鎖拿掉
             const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
             if (!resultSetSetting) {
-                console.error('settle done result: ', resultSetSetting);
+                console.error('@postSettlePair: db setSettleDone fail:', resultSetSetting);
                 throw new Error('Internal Server Error');
             }
             await conn.commit();
@@ -439,25 +405,25 @@ const postSettlePair = async (req, res) => {
         let debtMain = { gid, date, total: pairBalance.amount, lender: pairBalance.borrower, split_method: Mapping.SPLIT_METHOD.full_amount }; //因為是還錢所以debtMain的lender值為本來的borrower
         const userNames = await User.getUserNames(conn, pairBalance.lender, pairBalance.borrower); //查user name組title
         if (!userNames) {
-            console.error('getUserNames fail: ', userNames);
+            console.error('@postSettlePair: db getUserNames fail:', userNames);
             throw new Error('Internal Server Error');
         }
         debtMain.title = `Settle Balances Between ${userNames[0].name} ${userNames[1].name}`;
         const debtId = await Debt.createDebt(conn, gid, debtMain);
         if (!debtId) {
-            console.log(debtId);
+            console.error('@postSettlePair: db createDebt fail:', debtId);
             throw new Error('Internal Server Error');
         }
         let debtDetail = [{ borrower: pairBalance.lender, amount: pairBalance.amount }];
         const createDebtDetailResult = await Debt.createDebtDetail(conn, debtId, debtDetail);
         if (!createDebtDetailResult) {
-            console.log(createDebtDetailResult);
+            console.error('@postSettlePair: db createDebtDetail fail:', createDebtDetailResult);
             throw new Error('Internal Server Error');
         }
         // 3) MySql clear balance of this pair //也可以是update一筆反向的, 跟刪除結果會是相同
         const deleteDebtBalanceResult = await Debt.deleteDebtBalance(conn, pairBalance.id); //直接把該id的balance帳刪除
         if (!deleteDebtBalanceResult) {
-            console.error(deleteDebtBalanceResult);
+            console.error('@postSettlePair: db deleteDebtBalance fail:', deleteDebtBalanceResult);
             throw new Error('Internal Server Error');
         }
 
@@ -466,67 +432,44 @@ const postSettlePair = async (req, res) => {
         // 4-1) Neo4j delete old edges(debt), nodes remained
         const deleteBestPathResult = await Graph.deleteBestPath(txc, neo4j.int(gid));
         if (!deleteBestPathResult) {
-            console.error(deleteBestPathResult);
+            console.error('@postSettlePair: neo4j deleteBestPath fail: ', deleteBestPathResult);
             throw new Error('Internal Server Error');
         }
 
-        // 4-1-1) create group on Neo4j
-        // 4-1-1-1) get group users
-        // const getGroupUserIds = await Admin.getGroupUserIds(gid);
-        // if (!getGroupUserIds) {
-        //     console.error(getGroupUserIds);
-        //     throw new Error('Internal Server Error');
-        // }
-        // // 4-1-1-2) create group
-        // //Neo4j建立節點
-        // let map = [];
-        // for (let userId of getGroupUserIds) {
-        //     // map.push({ name: neo4j.int(member.toSring()) }); //處理neo4j integer
-        //     map.push({ name: neo4j.int(userId) }); //處理neo4j integer
-        // }
-        // const graphResult = await Graph.createNodes(txc, neo4j.int(gid), map);
-        // if (!graphResult) {
-        //     return res.status(500).json({ err: 'Internal Server Error' });
-        // }
-
         // 4-2) Neo4j recreate(update) edges
         let newMap = balances.map((balance) => {
-            // 這裡的balance已經去除被settle的pair的帳
-            // 處理neo的數字
+            // 處理neo的數字 這裡的balance已經去除被settle的pair的帳
             return {
                 borrower: neo4j.int(balance.borrower),
                 lender: neo4j.int(balance.lender),
                 amount: neo4j.int(balance.amount),
             };
         });
-        console.debug('controller: for Neo newMap:   ', newMap);
         const updateGraphEdgeesult = await Graph.updateEdge(txc, neo4j.int(gid), newMap);
         if (!updateGraphEdgeesult) {
-            console.error(updateGraphEdgeesult);
+            console.error('@postSettlePair: neo4j updateEdge fail: ', updateGraphEdgeesult);
             throw new Error('Internal Server Error');
         }
-        console.debug('controller Neo4j更新線的結果： ', updateGraphEdgeesult);
 
         //準備開始更新, 更新DB狀態
         await Admin.setProcessingBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.processing);
         // 5) Neo4j get all path and calculate
         let [graph, debtsForUpdate] = await GraphHandler.getBestPath(txc, gid);
         if (!debtsForUpdate) {
-            console.error(debtsForUpdate);
+            console.error('@postSettlePair: neo4j getBestPath fail', debtsForUpdate);
             throw new Error('Internal Server Error');
         }
         // 6) Neo4j update best path graph
-        console.debug('controller debtsForUpdate:  ', debtsForUpdate);
         const updateGraph = Graph.updateBestPath(txc, gid, debtsForUpdate);
         if (!updateGraph) {
-            console.error(updateGraph);
+            console.error('@postSettlePair: neo4j updateBestPath fail: ', updateGraph);
             throw new Error('Internal Server Error');
         }
 
         //結束settle, 更新狀態
         const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
         if (!resultSetSetting) {
-            console.error('settle done result: ', resultSetSetting);
+            console.error('@postSettlePair: db settledone fail: ', resultSetSetting);
             throw new Error('Internal Server Error');
         }
         await Admin.setFinishedBestGraph(conn, gid, Mapping.BESTGRAPH_STATUS.finishedProcessing);
@@ -535,7 +478,7 @@ const postSettlePair = async (req, res) => {
         await txc.commit();
         return res.status(200).json({ data: updateGraph });
     } catch (err) {
-        console.error(err);
+        console.error('@postSettlePair: err: ', err);
         await conn.rollback();
         await txc.rollback();
         return res.status(500).json({ err: 'Internal Server Error' });
@@ -543,16 +486,14 @@ const postSettlePair = async (req, res) => {
         conn.release();
         session.close();
     }
-    // });
 };
 const postSettleDone = async (req, res) => {
     if (req.userGroupRole.gid != Number(req.params.id) || req.userGroupRole.role < Mapping.USER_ROLE['editor']) {
-        console.error('req.userGroupRole.gid, req.params.id: ', req.userGroupRole.gid, req.params.id, req.id);
+        console.error('@postSettleDone: 403: ', req.userGroupRole.gid, req.params.id, req.id);
         return res.status(403).json({ err: 'No authorization.' });
     }
     const uid = req.user.id;
     const gid = Number(req.params.id);
-    console.log('controller: uid, gid:', uid, gid, req.id);
 
     //取得MySql&Neo連線並開始transaction
     const conn = await pool.getConnection();
@@ -560,36 +501,16 @@ const postSettleDone = async (req, res) => {
         //結束settle, 更新狀態
         const resultSetSetting = await Admin.setSettleDone(conn, gid, uid);
         if (!resultSetSetting) {
-            console.error('settle done result: ', resultSetSetting);
+            console.error('@postSettleDone: db settledone fail: ', resultSetSetting);
             throw new Error('Internal Server Error');
         }
-        console.log('settle done result: ', resultSetSetting);
         return res.status(200).json({ data: null });
     } catch (err) {
-        console.error(err);
+        console.error('@postSettleDone: err: ', err);
         return res.status(500).json({ err: 'Internal Server Error' });
     } finally {
         conn.release();
     }
-};
-const postSettlePairAll = async (req, res) => {
-    // 1) MySql get balance of this pair
-    // 1-1) TODO:get pair balance in all groups
-    // TODO: for loop groups
-    // 2) MySql create debt as settle
-    // 3) MySql clear balance of this pair in all groups
-    //TODO: for loop groups
-    // 4) Neo4j recreate
-    // 4-1) regen Neo4j
-    // 4-1-1) create group on Neo4j
-    // 4-1-1-1) get group users
-    // 4-1-1-2) create group
-    // 4-1-2) updateEdge on Neo4j
-    // 4-2) get best path
-    // 4-3) update Neo4j by best
-    // 5) TODO: Neo4j delete old Neo4j graph for all groups
-    // 6) 終於完成了回覆client
-    // search update result from dbs just for refernce
 };
 
 module.exports = { postDebt, updateDebt, deleteDebt, postSettle, postSettlePair, postSettleDone };

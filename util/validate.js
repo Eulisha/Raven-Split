@@ -21,12 +21,10 @@ const debtFormSubmitRule = [
     body('debt_main.split_method').isIn(['1', '2']).withMessage('Incorrect split method.'),
     body(['debt_main.total', 'debt_detail.*.amount']).isInt({ min: 1, max: 100000000 }).withMessage('Amount should not less than 1 or greater than 100000000.'),
     body('debt_main.total').custom((value, { req }) => {
-        // console.log(req.body);
         let splitTotal = 0;
         Object.values(req.body.debt_detail).map((detail) => {
             splitTotal += Number(detail.amount);
         });
-        console.log('splitTotal: ', splitTotal);
         if (value != splitTotal) {
             throw new Error('Total mismatch with expense spliting.');
         }
@@ -36,15 +34,14 @@ const debtFormSubmitRule = [
 const settleFormSubmitRule = [
     body('settle_main.date').notEmpty().withMessage("Can't Have empty column."),
     body('settle_main.date').isAfter('2000-01-01').isBefore('2050-01-01').withMessage('Out of supported date range.'),
-    // body(['settle_detail.*.amount']).isInt({ min: 1, max: 100000000 }).withMessage('Amount should not less than 1 or greater than 100000000.'),
 ];
 const groupFormSubmitRule = [body('group_name').notEmpty().withMessage("Can't Have empty column.")];
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
-    console.log('validateRule: errors', errors);
+
     if (!errors.isEmpty()) {
-        console.error('vaildate fail: ', errors.array());
+        console.error('@vaildate: fail: ', req.path, errors.array());
         return res.status(400).json({ err: errors.array(), provider: 'validator' }); // provider是用來給前端做判斷的key
     }
     next();

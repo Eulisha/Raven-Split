@@ -24,7 +24,7 @@ app.use(function (req, res, next) {
 
 // Error handling
 app.use(function (err, req, res, next) {
-    console.log('Catch At app.js: ', err);
+    console.error('Catch At app.js: ', err);
     return res.status(500).json({ err: 'Internal Server Error' });
 });
 

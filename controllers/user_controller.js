@@ -5,18 +5,16 @@ const jwtExpire = process.env['JWT_EXPIRE'];
 const User = require('../models/user_model');
 
 const signUp = async (req, res) => {
-    console.info('controller: req.body: ', req.body);
-
     const { email, password, name, cellphone, provider } = req.body;
 
     //確認email是否存在
     const checkExistResult = await User.checkExist(email);
     if (!checkExistResult) {
-        console.error('checkExistResult fail: 500: ', checkExistResult);
+        console.error('@signUp: db checkExistResult fail: 500: ', checkExistResult);
         return res.status(500).json({ err: 'Internal Server Error.' });
     }
     if (checkExistResult.length != 0) {
-        console.error('checkExistResult fail: 403: ', checkExistResult);
+        console.error('@signUp: db checkExistResult fail: 403: ', checkExistResult);
         return res.status(403).json({ err: 'Email already existed.' });
     }
 
@@ -25,9 +23,8 @@ const signUp = async (req, res) => {
 
     // 儲存使用者
     const userId = await User.signUp(email, hash, name, cellphone, provider);
-    console.log(userId);
-    // 生成token
 
+    // 生成token
     const user = {
         id: userId,
         email,
@@ -52,20 +49,17 @@ const signUp = async (req, res) => {
 };
 
 const signIn = async (req, res) => {
-    console.log('controller: req.body :', req.body);
-
     const { email, password, provider } = req.body;
 
     //確認email是否存在
     const signInResult = await User.signIn(email);
-    console.debug(signInResult);
 
     if (!signInResult) {
-        console.error('signInResult fail: 500: ', signInResult);
+        console.error('@signIn: signInResult fail: 500: ', signInResult);
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
     if (signInResult.length == 0) {
-        console.error('signInResult fail: 403: ', signInResult);
+        console.error('@signIn: signInResult fail: 403: ', signInResult);
         return res.status(403).json({ err: 'Please check e-mail and password are correct.' });
     }
 
@@ -73,18 +67,18 @@ const signIn = async (req, res) => {
     try {
         const hash = await bcrypt.compare(password, signInResult[0].password);
         if (!hash) {
-            console.error('has fail: 403: ', hash);
+            console.error('@signIn: fail: 403: ', hash);
             return res.status(403).json({ err: 'Please check e-mail and password are correct.' });
         }
     } catch (err) {
-        console.error('has fail: 500: ', err);
+        console.error('@signIn: fail: 500: ', err);
         return res.status(500).json({ err: 'Internal Server Error' });
     }
 
     // get user-groups and roles
     const userGroups = await User.getUserGroups(signInResult[0].id);
     if (!userGroups) {
-        console.error('userGroups fail: 500: ', hash);
+        console.error('@signIn: db userGroups fail: 500: ', hash);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -117,22 +111,23 @@ const signIn = async (req, res) => {
 const getUserInfo = async (req, res) => {
     //JWT解出的token
     let email = req.user.email;
-    console.info('controller: email:', email);
 
     //確認使用者是否存在(與signIn共用function)
     const signInResult = await User.signIn(email);
-    console.debug(signInResult);
 
     if (!signInResult) {
+        console.error('@getUserInfo: db signIn fail: ', signInResult);
         return res.status(500).json({ err: 'Internal Server Eroor.' });
     }
     if (signInResult.length == 0) {
+        console.error('@getUserInfo: 403');
         return res.status(403).json({ err: 'JWT invalid.' });
     }
 
     // get user-groups and roles
     const userGroups = await User.getUserGroups(signInResult[0].id);
     if (!userGroups) {
+        console.error('@getUserInfo: db getUserGroups fail: ', userGroups);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
@@ -150,29 +145,28 @@ const getUserInfo = async (req, res) => {
 };
 const getUserGroups = async (req, res) => {
     let uid = req.user.id;
-    console.info('controller: uid: ', uid);
     const groups = await User.getUserGroups(uid);
     if (!groups) {
+        console.error('@getUserGroups: db getUserGroups fail', groups);
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     res.status(200).json({ data: groups });
 };
 const checkUserExist = async (req, res) => {
-    console.info('controller: req.query: ', req.query);
     const email = req.query.email;
     if (!email || email == '') {
+        console.error('@checkUserExist: 400');
         return res.status(400).json({ err: 'No email input.' });
     }
     const checkExistResult = await User.checkExist(email);
     if (!checkExistResult) {
-        console.log('checkExist result:', checkExistResult);
+        console.error('@checkUserExist: 500: db checkExist fail:', checkExistResult);
         return res.status(500).json({ err: 'Internal Server Error' });
     }
     if (checkExistResult.length == 0) {
-        console.log('checkExist result:', checkExistResult, '=> User not exist.');
+        console.error('@checkUserExist: 404:', checkExistResult);
         return res.status(404).json({ err: 'User not exist.' });
     }
-    console.log(checkExistResult[0]);
     res.status(200).json({ data: checkExistResult[0] });
 };
 module.exports = { signUp, signIn, getUserInfo, getUserGroups, checkUserExist };

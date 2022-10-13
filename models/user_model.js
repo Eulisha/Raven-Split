@@ -7,7 +7,6 @@ const checkExist = async (email) => {
         const [result] = await pool.execute(sql, data);
         return result;
     } catch (err) {
-        console.log(err);
         return err;
     }
 };
@@ -17,10 +16,8 @@ const signUp = async (email, password, name, cellphone, provider) => {
         const sql = 'INSERT INTO users SET email = ?, password = ?, name = ?, cellphone = ?, provider = ?, status = ?';
         const data = [email, password, name, cellphone, provider, 1];
         const [result] = await pool.execute(sql, data);
-        console.log(result);
         return result.insertId;
     } catch (err) {
-        console.log(err);
         return err;
     }
 };
@@ -31,47 +28,38 @@ const signIn = async (email) => {
         const [result] = await pool.execute(sql, data);
         return result;
     } catch (err) {
-        console.log(err);
         return err;
     }
 };
 const getUserGroupRole = async (uid, gid) => {
-    console.log('model uid gid: ', uid, gid);
     try {
         const sql = 'SELECT gid, role FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND gid = ? AND `groups`.status = ?;';
         const data = [uid, gid, 1];
         const result = await pool.execute(sql, data);
         return result;
     } catch (err) {
-        console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
 };
 
 const getUserGroups = async (uid) => {
-    console.log('@getGroups: uid: ', uid);
     try {
         const sql = 'SELECT gid, name, type, role FROM group_users LEFT JOIN `groups` ON `groups`.id = group_users.gid WHERE uid = ? AND `groups`.status = ?;';
         const data = [uid, 1];
         const [result] = await pool.execute(sql, data);
-        console.log(result);
         return result;
     } catch (err) {
-        console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
 };
 
 const getUserNames = async (conn, uid1, uid2) => {
-    console.log('model: uid1, uid2: ', uid1, uid2);
     try {
         const sql = 'SELECT id, name FROM `users` WHERE id IN (?,?) AND status = ?';
         const data = [uid1, uid2, 1];
         const [result] = await pool.execute(sql, data);
-        console.log(result);
         return result;
     } catch (err) {
-        console.error('ERROR AT getUserGroups: ', err);
         return null;
     }
 };
