@@ -11,7 +11,7 @@ const checkExist = async (email) => {
     }
 };
 
-const signUp = async (email, password, name, cellphone, provider) => {
+const signUp = async (email, password, name, provider) => {
     try {
         const sql = 'INSERT INTO users SET email = ?, password = ?, name = ?, provider = ?, status = ?';
         const data = [email, password, name, provider, 1];

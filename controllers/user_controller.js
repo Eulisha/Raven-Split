@@ -29,7 +29,6 @@ const signUp = async (req, res) => {
         id: userId,
         email,
         name,
-        cellphone,
         picture: null,
         provider,
     };
@@ -87,7 +86,6 @@ const signIn = async (req, res) => {
         id: signInResult[0].id,
         email: signInResult[0].email,
         name: signInResult[0].name,
-        cellphone: signInResult[0].cellphone,
         picture: signInResult[0].picture,
         provider: signInResult[0].provider,
     };
@@ -136,7 +134,6 @@ const getUserInfo = async (req, res) => {
         id: signInResult[0].id,
         email: signInResult[0].email,
         name: signInResult[0].name,
-        cellphone: signInResult[0].cellphone,
         picture: signInResult[0].picture,
         provider: signInResult[0].provider,
     };
