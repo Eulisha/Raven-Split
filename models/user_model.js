@@ -13,8 +13,8 @@ const checkExist = async (email) => {
 
 const signUp = async (email, password, name, cellphone, provider) => {
     try {
-        const sql = 'INSERT INTO users SET email = ?, password = ?, name = ?, cellphone = ?, provider = ?, status = ?';
-        const data = [email, password, name, cellphone, provider, 1];
+        const sql = 'INSERT INTO users SET email = ?, password = ?, name = ?, provider = ?, status = ?';
+        const data = [email, password, name, provider, 1];
         const [result] = await pool.execute(sql, data);
         return result.insertId;
     } catch (err) {
