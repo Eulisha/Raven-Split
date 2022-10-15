@@ -1,5 +1,7 @@
 
-# Raven Split
+# Raven Split<img align="right" width="20%" alt="logo" src="https://user-images.githubusercontent.com/62165222/195981882-a3ae7a82-c10b-4f30-a447-d95d0f4fd3a9.png"/>
+
+
 
 Raven Split is a website dedicated to solving the daily troubles of split expenses within a group. We developed an algorithm to help simplify the payback relationship.
 
@@ -14,6 +16,7 @@ Raven Split is a website dedicated to solving the daily troubles of split expens
     - [Algorithm explanation](#Algorithm-explanation)
     - [Stragety](#Stragety)
     - [Tech Stack](#Tech-Stack)
+    - [Demo](#Demo)
     
 ## Intro 
 
@@ -21,7 +24,7 @@ Having trouble with calculating shared expenses with friends after dining togeth
 Tired of taking out wallet or opening LINE Pay ever time after joining an order at UBER EAT with colleagues?
 Don’t worry! With Raven Split service, you can release yourself from those bothering mathematic trivialities!
 
-### Get started right now!
+### Get started right now: [Raven Split](https://raven-split.life/)
 
 You can use the below account to explore Raven Split.
 |Account|Password|
@@ -85,7 +88,7 @@ RDS MySQl is used for saving raw data, balances as well as user and group datas.
 With this structure, we can:
     - Guarantee the consistency of user data with the trait of relational database.
     - Take advantage of the graph database's relation base structure to fasten algorithm calculation.
-<div align="center"><img alt="db_strategy" src="https://user-images.githubusercontent.com/62165222/195970547-b166e63c-aca2-4995-a92e-fb5139ebb384.png" width="50%"></div>
+<div align="center"><img alt="db_strategy" src="https://user-images.githubusercontent.com/62165222/195970547-b166e63c-aca2-4995-a92e-fb5139ebb384.png" width="70%"></div>
 
 2. Implement Lambda and SQS to handle best settle calculation when needed
 Considering the resouce-consuming by best settle calculation and the complexity of calculation itself influenced by the number of edges(payment relationships), it is not good either to conduct calculations per modification or wait until user requests.
@@ -107,7 +110,7 @@ width="70%"/></div>
 
 **AWS Serverless Service:** Lambda, SQS
 
-**Client:** React, Bootstrap, Material-UI
+**Client:** React ([Front-End Repo](https://github.com/Eulisha/Raven-Split-Front-End)), Bootstrap, Material-UI
 
 ## Demo
 
