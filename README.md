@@ -40,16 +40,21 @@ If you want to create a group by yourself, you can add the following accounts.
 |guest5@raven-split.life|
 
 ## Features
-- Track balance: Track self balances accross groups on dashboard clearly.
+- Track balance: Track self balances as well as debt details accross groups on dashboard clearly.
+<div align="center"><img alt="dashboard" src="https://user-images.githubusercontent.com/62165222/195965396-49e32d58-edc4-41b7-b491-3ba938ae2e88.png" width="50%"/></div>
 
 - Organize expense: Split expenses easily with friends, colleages, family, or anyone.
+<div align="center"><img alt="group" src="https://user-images.githubusercontent.com/62165222/195965342-e95903ec-2626-4714-883a-ec046ba94537.png" width="50%" /></div>
 
 - Add expenses: Record shared expense quickly with split/customized mode and calculate helper.
-<div><img alt="add_expense" src="https://user-images.githubusercontent.com/62165222/195963851-02adac2a-8afc-49f8-8316-e30875a2828b.gif" width="50%"/><img alt="edit_expense" src="https://user-images.githubusercontent.com/62165222/195963866-e7c2fd6a-27cd-4fe2-8556-7ed2d38adea5.gif" width="50%"/><img alt="delete_expense" src="https://user-images.githubusercontent.com/62165222/195963869-0d94be2c-0672-4651-b63b-1c05ced98f54.gif" width="50%"/></div>
+<div align="center"><img alt="add_expense" src="https://user-images.githubusercontent.com/62165222/195963851-02adac2a-8afc-49f8-8316-e30875a2828b.gif" width="50%"/></div>
+<div align="center"><img alt="edit_expense" src="https://user-images.githubusercontent.com/62165222/195963866-e7c2fd6a-27cd-4fe2-8556-7ed2d38adea5.gif" width="40%"/> <img alt="delete_expense" src="https://user-images.githubusercontent.com/62165222/195963869-0d94be2c-0672-4651-b63b-1c05ced98f54.gif" width="40%"/></div>
 
 - Pay friends back: Settle up with a friend and record the payment.
+<div align="center"><img alt="settle_pair" src="https://user-images.githubusercontent.com/62165222/195965194-bda73240-43f6-41c3-813e-76d55ed96a33.gif" width="50%"/></div>
 
 - Simplify payback relations: Settle up in group wisely with raven split algorithm suggestion.
+<div align="center"><img alt="settle_all" src="https://user-images.githubusercontent.com/62165222/195965182-39e0693f-6faf-4bd2-9149-b38fa4f610f1.gif" width="50%"/></div>
 
 
 
@@ -76,14 +81,14 @@ The different between _*Raw Data*_, _*Balance*_, _*Best Settle Solution*_
 
   _Note: In this algorithm we will not build a new payback relatoin if there is no current debt replation between two people. (In the real world cases, it is possibly that the two people are not knowing each other but only joining the same group.)_
 
-- Real Examples:
-<img alt="Three_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195865569-0b35eac4-a390-4241-81f1-ab9950b0680d.gif" width="50%"/>
+- A simple examples in three members' group:
+<div align="center"><img alt="Three_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195865569-0b35eac4-a390-4241-81f1-ab9950b0680d.gif" width="50%"/></div>
 
  1. Origin: Adam owes Euli $100, Adam owes Tim $50, Tim owes Euli $50.
  2. Adam owes Tim $50, Tim owes Euli $50 => Turns to Adam pays Euli $50
  3. Adam owes Euli $100 + $50 = $150.
 
-- A glance of a complex example in ten people group
+- A glance at a complex example in ten member's group:
 <div align="center"><img alt="Ten_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195868659-2ea111ef-6848-4a19-ac78-4f704ce55cc2.gif" width="50%"/></div>
 1. Having 30 debts between group members
 2. Reduced to 9 debts after calculating by raven split algorithum
