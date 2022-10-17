@@ -14,7 +14,7 @@ Raven Split is a website dedicated to solving the daily troubles of split expens
     - [Architecture](#Architecture)
     - [Glossary](#Glossary)
     - [Algorithm explanation](#Algorithm-explanation)
-    - [Stragety](#Stragety)
+    - [Strategy & Solution](#Strategy-&-Solution)
     - [Tech Stack](#Tech-Stack)
     - [Demo](#Demo)
     
@@ -26,18 +26,27 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
 
 ### Get started right now: [Raven Split](https://raven-split.life/)
 
-You can use the below account to explore Raven Split.
-|Account|Password|
-|----------------------|--------|
-|guest@raven-split.life|12345678|
+- Login
 
-If you want to create a group by yourself, you can use the following accounts.
-|Account|
-|-----------------------|
-|guest2@raven-split.life|
-|guest3@raven-split.life|
-|guest4@raven-split.life|
-|guest5@raven-split.life|
+    You can use the below account to explore Raven Split.
+    |Account|Password|
+    |----------------------|--------|
+    |guest@raven-split.life|12345678|
+    |guest1@raven-split.life|12345678|
+
+    ‼️ IMPORTANT ‼️ <br>
+    If you encounter error when updating expenses with the warning "Seems like you have another browser which is checking settle", that is because the accounts above are shared and Raven Split has lock design to prevent expense modification while someone is trying to settle.<br>
+    Try using the other account, or create one for yourself.
+
+- Create Group
+
+    If you want to create a group by yourself, you can use the following accounts.
+    |Account|
+    |-----------------------|
+    |guest2@raven-split.life|
+    |guest3@raven-split.life|
+    |guest4@raven-split.life|
+    |guest5@raven-split.life|
 
 ## Features
 - Track balance: Track self-balances as well as debt details across groups on the dashboard clearly.
@@ -55,21 +64,24 @@ If you want to create a group by yourself, you can use the following accounts.
 - Balance:  the current owe amount and owe relationship between two people, which is calculated by all the previous expense records.
 - Best Settle Solution: the simplier payback solution which took all the balances in the group, and then use the algorithm to reduct the total number of repayments between group members, but still keep everyone get there full owed amount back.
 
-### Algorithm explanation:
+### Algorithm Explanation:
 
 - #### Mechanism:
+<img width="100%" alt="algorithm explanation" src="https://user-images.githubusercontent.com/62165222/196226648-77c6b359-b6cc-4412-8e44-cbc0ee838486.png">
+
+
 ```
     1. Pick up two nodes (people) as start and end in the graph. 
     2. Pick up one path that can go from start to end, which might pass through couple of nodes (other people).
-    3. Find the bottleneck capacity (minimum debt amount on this path).
+    3. Find the bottleneck capacity, which is minimum debt amount on this path (the minimun debt).
     4. For each edge, minus bottleneck capacity to get residual (remaining debts).
-    5. Add this capacity to the shortest path (edge of start to end).
+    5. Add this capacity to the shortest path (which is edge of start to end in our definition).
 ```
 
   _Note: In this algorithm, we will not build a new payback relation if there is no current debt relation between the two people. (In real world cases, it is probably that the two people are not knowing each other but just join the same group.)_
 
 - #### A simple example of three members' group:
-<div align="center"><img alt="Three_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195865569-0b35eac4-a390-4241-81f1-ab9950b0680d.gif" width="50%"/></div>
+<div align="center"><img alt="Three_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/196229844-d36ad85b-d456-49ad-a475-ebdb34de597a.gif" width="70%"/></div>
 
 
     1. Origin debt: Adam owes Euli $100, Adam owes Tim $50, and Tim owes Euli $50.
@@ -77,14 +89,14 @@ If you want to create a group by yourself, you can use the following accounts.
     3. Adam owes Euli $100 + $50 = $150.
 
 - #### A glance at a complex example of ten member's group:
-<div align="center"><img alt="Ten_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195868659-2ea111ef-6848-4a19-ac78-4f704ce55cc2.gif" width="50%"/></div>
+<div align="center"><img alt="Ten_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195868659-2ea111ef-6848-4a19-ac78-4f704ce55cc2.gif" width="70%"/></div>
 
     1. Having 30 debts between group members
     2. Reduced to 9 debts after calculating by Raven Split algorithm
 
-### Stragety:
+### Strategy & Solution:
 1. Applied both relational database and graph database
-RDS MySQl is used for saving raw data, balances as well as user and group datas. On the other hand, Neo4j is used to save the best settle solutions. 
+RDS MySQL is used for saving raw data, balances as well as user and group datas. On the other hand, Neo4j is used to save the best settle solutions. 
 With this structure, we can:
     - Guarantee the consistency of user data with the trait of relational database.
     - Take advantage of the graph database's relation base structure to fasten algorithm calculation.
@@ -104,13 +116,10 @@ width="70%"/></div>
 
 ## Tech Stack
 
-**Server:** Node, Express
-
-**Database:** RDS MySQL, Neo4j
-
-**AWS Serverless Service:** Lambda, SQS
-
-**Client:** React ([Front-End Repo](https://github.com/Eulisha/Raven-Split-Front-End)), Bootstrap, Material-UI
+- **Server:** Node, Express
+- **Database:** RDS MySQL, Neo4j
+- **AWS Serverless Service:** Lambda, SQS
+- **Client:** React ([Front-End Repo](https://github.com/Eulisha/Raven-Split-Front-End)), Bootstrap, Material-UI
 
 ## Demo
 
