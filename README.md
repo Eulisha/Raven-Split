@@ -3,25 +3,25 @@
 
 
 
-Raven Split is a website dedicated to solving the daily troubles of split expenses within a group. We developed an algorithm to help simplify the payback relationship.
+Raven Split is a website dedicated to solving the daily troubles of split expenses within a group. <br/>
+We developed an algorithm to help simplify the payback relationship.
 
 ## Table of Content
 
-- [Table of Content](#Table-of-Content)
 - [Intro](#Intro)
 - [Features](#Features)
-- [Tech](#Tech)
-    - [Architecture](#Architecture)
+- [Techniques](#Techniques)
+    - [Overall Architecture](#Overall-Architecture)
     - [Glossary](#Glossary)
     - [Algorithm explanation](#Algorithm-explanation)
-    - [Strategy & Solution](#Strategy-&-Solution)
+    - [Strategy and Solution](#Strategy-and-Solution)
     - [Tech Stack](#Tech-Stack)
-    - [Demo](#Demo)
+- [Demo](#Demo)
     
 ## Intro 
 
-Having trouble with calculating shared expenses with friends after dining together? 
-Tired of taking out wallet or opening LINE Pay ever time after joining an order at UBER EAT with colleagues?
+Having trouble with calculating shared expenses with friends after dining together? <br/>
+Tired of taking out wallet or opening LINE Pay ever time after joining an order at UBER EAT with colleagues?<br/>
 Don’t worry! With Raven Split service, you can release yourself from those bothering mathematic trivialities!
 
 ### Get started right now: [Raven Split](https://raven-split.life/)
@@ -94,9 +94,9 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
     1. Having 30 debts between group members
     2. Reduced to 9 debts after calculating by Raven Split algorithm
 
-### Strategy & Solution:
+### Strategy and Solution:
 1. Applied both relational database and graph database
-RDS MySQL is used for saving raw data, balances as well as user and group datas. On the other hand, Neo4j is used to save the best settle solutions. 
+RDS MySQL is used for saving raw data, balances as well as user and group datas. On the other hand, Neo4j is used to save the best settle solutions.
 With this structure, we can:
     - Guarantee the consistency of user data with the trait of relational database.
     - Take advantage of the graph database's relation base structure to fasten algorithm calculation.
