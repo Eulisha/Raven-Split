@@ -2,10 +2,10 @@
 node_modules/
 
 # dotenv environment variables file
-.env
+**/*.env
 
 # System Files
-.DS_Store
+**/*.DS_Store
 Thumbs.db
 
 #test data

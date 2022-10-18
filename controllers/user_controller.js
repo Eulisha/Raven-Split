@@ -5,7 +5,7 @@ const jwtExpire = process.env['JWT_EXPIRE'];
 const User = require('../models/user_model');
 
 const signUp = async (req, res) => {
-    const { email, password, name, cellphone, provider } = req.body;
+    const { email, password, name, provider } = req.body;
 
     //確認email是否存在
     const checkExistResult = await User.checkExist(email);
@@ -22,14 +22,13 @@ const signUp = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
 
     // 儲存使用者
-    const userId = await User.signUp(email, hash, name, cellphone, provider);
+    const userId = await User.signUp(email, hash, name, provider);
 
     // 生成token
     const user = {
         id: userId,
         email,
         name,
-        cellphone,
         picture: null,
         provider,
     };
@@ -87,7 +86,6 @@ const signIn = async (req, res) => {
         id: signInResult[0].id,
         email: signInResult[0].email,
         name: signInResult[0].name,
-        cellphone: signInResult[0].cellphone,
         picture: signInResult[0].picture,
         provider: signInResult[0].provider,
     };
@@ -136,7 +134,6 @@ const getUserInfo = async (req, res) => {
         id: signInResult[0].id,
         email: signInResult[0].email,
         name: signInResult[0].name,
-        cellphone: signInResult[0].cellphone,
         picture: signInResult[0].picture,
         provider: signInResult[0].provider,
     };
