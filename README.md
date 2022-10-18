@@ -147,3 +147,11 @@ width="70%"/></div>
 - #### Create group: create your own group with friends.
 <div align="center"><img alt="create_group" src="https://user-images.githubusercontent.com/62165222/195969335-b228454b-2b4c-42c7-95b4-20c5562839e5.gif"
 width="70%"/></div>
+
+
+## Author
+Euli Liao </br>
+If any question or feedback, feel free to contact me by the following:
+- [GitHub](https://github.com/Eulisha)
+- [LinkedIn](https://www.linkedin.com/in/yu-chieh-liao/)
+- Email: tina5ps93@gmail.com
