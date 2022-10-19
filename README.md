@@ -67,7 +67,7 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
 ### Algorithm Explanation:
 
 - #### Mechanism:
-<img width="100%" alt="algorithm explanation" src="https://user-images.githubusercontent.com/62165222/196226648-77c6b359-b6cc-4412-8e44-cbc0ee838486.png">
+<img width="100%" alt="algorithm explanation" src="https://user-images.githubusercontent.com/62165222/196590203-cd432ed1-dbd6-4432-8062-770c7a5865fc.png">
 
 
 ```
@@ -81,12 +81,16 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
   _Note: In this algorithm, we will not build a new payback relation if there is no current debt relation between the two people. (In real world cases, it is probably that the two people are not knowing each other but just join the same group.)_
 
 - #### A simple example of three members' group:
-<div align="center"><img alt="Three_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/196229844-d36ad85b-d456-49ad-a475-ebdb34de597a.gif" width="70%"/></div>
+
+<div align="center"><img width="70%" alt="three people example" src="https://user-images.githubusercontent.com/62165222/196587649-b2d886bd-ced5-4b5f-8dcf-1e630449ee47.png"/></div>
 
 
+
+    0. Prepare data: Calcuate balance with raw data. Make sure only one edge between two nodes.
     1. Origin debt: Adam owes Euli $100, Adam owes Tim $50, and Tim owes Euli $50.
-    2. Adam owes Tim $50, and Tim owes Euli $50 => This can change to Adam paying Euli $50 directly
-    3. Adam owes Euli $100 + $50 = $150.
+    2. Process with algorithm: Adam owes Tim $50, and Tim owes Euli $50 => This can change to Adam paying Euli $50 directly
+    3. Get simplified solution: Adam pays Euli $100 + $50 = $150.
+
 
 - #### A glance at a complex example of ten member's group:
 <div align="center"><img alt="Ten_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195868659-2ea111ef-6848-4a19-ac78-4f704ce55cc2.gif" width="70%"/></div>
