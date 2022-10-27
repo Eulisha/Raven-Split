@@ -21,7 +21,7 @@ We developed an algorithm to help simplify the payback relationship.
 ## Intro 
 
 Having trouble with calculating shared expenses with friends after dining together? <br/>
-Tired of taking out wallet or opening LINE Pay ever time after joining an order at UBER EAT with colleagues?<br/>
+Tired of taking out your wallet or opening LINE Pay every time after joining an order at UBER EAT with colleagues?<br/>
 Don’t worry! With Raven Split service, you can release yourself from those bothering mathematic trivialities!
 
 ### Get started right now: [Raven Split](https://raven-split.life/)
@@ -35,7 +35,7 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
     |guest1@raven-split.life|12345678|
 
     ‼️ IMPORTANT ‼️ <br>
-    If you encounter error when updating expenses with the warning "Seems like you have another browser which is checking settle", that is because the accounts above are shared and Raven Split has lock design to prevent expense modification while someone is trying to settle.<br>
+    If you encounter an error when updating expenses with the warning "Seems like you have another browser which is checking settle", that is because the accounts above are shared and Raven Split has lock design to prevent expense modification while someone is trying to settle.<br>
     Try using the other account, or create one for yourself.
 
 - Create Group
@@ -53,16 +53,16 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
 - Organize expenses: Split expenses easily with friends, colleagues, family, or anyone.
 - Add expenses: Record shared expenses quickly with split/customized mode and calculate helper.
 - Pay friends back: Settle up with a friend and record the payment anytime.
-- Simplify payback relations: Settle up with the whole group by simplized way calculating by Raven Split algorithm.
+- Simplify payback relations: Settle up with the whole group in a simplified way calculated by Raven Split algorithm.
 
 ## Techniques
 ### Overall Architecture:
 ![Structure](https://user-images.githubusercontent.com/62165222/195860285-e50392b7-4fe9-4d41-92a2-cb01f2ddc0f2.png)
 
 ### Glossary:
-- Raw Data: the expense data come from client input, including who paid and who were involved in this expense.
-- Balance:  the current owe amount and owe relationship between two people, which is calculated by all the previous expense records.
-- Best Settle Solution: the simplier payback solution which took all the balances in the group, and then use the algorithm to reduct the total number of repayments between group members, but still keep everyone get there full owed amount back.
+- Raw Data: the expense data come from client input, including who paid and who was involved in this expense.
+- Balance:  the owe amount and owe relationship between two people, which is calculated by all the previous expense records.
+- Best Settle Solution: the simpler payback solution which takes all the balances in the group, and then uses the algorithm to reduce the total number of repayments between group members, but still keeps everyone getting their full owed amount back.
 
 ### Algorithm Explanation:
 
@@ -73,26 +73,26 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
 ```
     1. Pick up two nodes (people) as start and end in the graph. 
     2. Pick up one path that can go from start to end, which might pass through couple of nodes (other people).
-    3. Find the bottleneck capacity, which is minimum debt amount on this path (the minimun debt).
+    3. Find the bottleneck capacity, which is the minimum debt amount on this path (the minimum debt).
     4. For each edge, minus bottleneck capacity to get residual (remaining debts).
-    5. Add this capacity to the shortest path (which is edge of start to end in our definition).
+    5. Add this capacity to the shortest path (which is the edge of start to end in our definition).
 ```
 
-  _Note: In this algorithm, we will not build a new payback relation if there is no current debt relation between the two people. (In real world cases, it is probably that the two people are not knowing each other but just join the same group.)_
+  _Note: In this algorithm, we will not build a new payback relation if there is no current debt relationship between the two people. (In real-world cases, it is probably that the two people are not knowing each other but just join the same group.)_
 
-- #### A simple example of three members' group:
+- #### A simple example of three–member–group:
 
 <div align="center"><img width="70%" alt="three people example" src="https://user-images.githubusercontent.com/62165222/196587649-b2d886bd-ced5-4b5f-8dcf-1e630449ee47.png"/></div>
 
 
 
-    0. Prepare data: Calcuate balance with raw data. Make sure only one edge between two nodes.
+    0. Prepare data: Calculate balance with raw data. Make sure only one edge between two nodes.
     1. Origin debt: Adam owes Euli $100, Adam owes Tim $50, and Tim owes Euli $50.
     2. Process with algorithm: Adam owes Tim $50, and Tim owes Euli $50 => This can change to Adam paying Euli $50 directly
     3. Get simplified solution: Adam pays Euli $100 + $50 = $150.
 
 
-- #### A glance at a complex example of ten member's group:
+- #### A glance at a complex example of ten-member–group:
 <div align="center"><img alt="Ten_people_best_settle_solution" src="https://user-images.githubusercontent.com/62165222/195868659-2ea111ef-6848-4a19-ac78-4f704ce55cc2.gif" width="70%"/></div>
 
     1. Having 30 debts between group members
@@ -100,14 +100,14 @@ Don’t worry! With Raven Split service, you can release yourself from those bot
 
 ### Strategy and Solution:
 1. Applied both relational database and graph database
-RDS MySQL is used for saving raw data, balances as well as user and group datas. On the other hand, Neo4j is used to save the best settle solutions.
+RDS MySQL is used for saving raw data, balances as well as user and group data. On the other hand, Neo4j is used to save the best settle solutions.
 With this structure, we can:
     - Guarantee the consistency of user data with the trait of relational database.
     - Take advantage of the graph database's relation base structure to fasten algorithm calculation.
 <div align="center"><img alt="db_strategy" src="https://user-images.githubusercontent.com/62165222/195970547-b166e63c-aca2-4995-a92e-fb5139ebb384.png" width="70%"></div>
 
 2. Implement Lambda and SQS to handle best settle calculation when needed
-Considering the resouce-consuming by best settle calculation and the complexity of calculation itself influenced by the number of edges(payment relationships), it is not good either to conduct calculations per modification or wait until user requests.
+Considering the resource-consuming by best settle calculation and the complexity of calculation itself influenced by the number of edges(payment relationships), it is not good either to conduct calculations per modification or wait until user requests.
 Hence, implement the following design for improvement:
 
       - Counting the amount of expense modification, conduct best settle calculation once per 5 modifications.
@@ -155,7 +155,7 @@ width="70%"/></div>
 
 ## Author
 Euli Liao </br>
-If any question or feedback, feel free to contact me by the following:
+If any questions or feedback, feel free to contact me by the following:
 - [GitHub](https://github.com/Eulisha)
 - [LinkedIn](https://www.linkedin.com/in/yu-chieh-liao/)
 - Email: tina5ps93@gmail.com
