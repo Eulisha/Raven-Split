@@ -21,30 +21,6 @@ Having trouble with calculating shared expenses with friends after dining togeth
 Tired of taking out wallet or opening LINE Pay ever time after joining an order at UBER EAT with colleagues?<br/>
 Don’t worry! With Raven Split service, you can release yourself from those bothering mathematic trivialities!
 
-### Get started right now: [Raven Split](https://raven-split.life/)
-
--   Login
-
-    You can use the below account to explore Raven Split.
-    |Account|Password|
-    |----------------------|--------|
-    |guest@raven-split.life|12345678|
-    |guest1@raven-split.life|12345678|
-
-    ‼️ IMPORTANT ‼️ <br>
-    If you encounter error when updating expenses with the warning "Seems like you have another browser which is checking settle", that is because the accounts above are shared and Raven Split has lock design to prevent expense modification while someone is trying to settle.<br>
-    Try using the other account, or create one for yourself.
-
--   Create Group
-
-    If you want to create a group by yourself, you can use the following accounts.
-    |Account|
-    |-----------------------|
-    |guest2@raven-split.life|
-    |guest3@raven-split.life|
-    |guest4@raven-split.life|
-    |guest5@raven-split.life|
-
 ## Features
 
 -   Track balance: Track self-balances as well as debt details across groups on the dashboard clearly.
